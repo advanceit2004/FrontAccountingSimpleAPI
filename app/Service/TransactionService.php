@@ -180,6 +180,215 @@ final class TransactionService
         return ['id' => $id, 'reference' => $po->reference];
     }
 
+
+    /** @param array<string,mixed> $d */
+    public function createSalesDelivery(array $d): array
+    {
+        Kernel::boot();
+        require_once Kernel::faRoot() . '/includes/ui/ui_globals.inc';
+        require_once Kernel::faRoot() . '/sales/includes/cart_class.inc';
+        require_once Kernel::faRoot() . '/sales/includes/db/sales_order_db.inc';
+        require_once Kernel::faRoot() . '/sales/includes/db/sales_delivery_db.inc';
+        require_once Kernel::faRoot() . '/inventory/includes/db/items_db.inc';
+
+        $order = \get_sales_order_header($d['orderId'], ST_SALESORDER);
+        if (!$order) {
+            throw new InvalidArgumentException('unknown sales order id: ' . $d['orderId']);
+        }
+
+        $cart = new \Cart(ST_SALESORDER, $d['orderId'], ST_CUSTDELIVERY);
+        if (count($cart->line_items) === 0) {
+            throw new InvalidArgumentException('sales order has no deliverable lines: ' . $d['orderId']);
+        }
+        $cart->document_date = \sql2date($d['date']);
+        $cart->due_date = \sql2date($d['deliveryDate'] ?: $d['date']);
+        $cart->reference = $d['reference'] ?: $GLOBALS['Refs']->get_next(ST_CUSTDELIVERY, null, ['date' => $cart->document_date, 'customer' => $cart->customer_id, 'branch' => $cart->Branch]);
+        $cart->Comments = $d['memo'];
+        if ($d['location'] !== '') {
+            $cart->Location = $d['location'];
+        }
+        if ($d['freightCost'] !== null) {
+            $cart->freight_cost = $d['freightCost'];
+        }
+
+        $this->applySalesLineQuantities($cart, $d['lines'], 'delivery');
+        $id = $cart->write($d['backOrder'] ? 1 : 0);
+        if ($id === -1) {
+            throw new InvalidArgumentException('sales delivery reference is already in use');
+        }
+        return ['id' => $id, 'reference' => $cart->reference, 'orderId' => $d['orderId']];
+    }
+
+    /** @param array<string,mixed> $d */
+    public function createSalesInvoice(array $d): array
+    {
+        Kernel::boot();
+        require_once Kernel::faRoot() . '/includes/ui/ui_globals.inc';
+        require_once Kernel::faRoot() . '/sales/includes/cart_class.inc';
+        require_once Kernel::faRoot() . '/sales/includes/db/sales_order_db.inc';
+        require_once Kernel::faRoot() . '/sales/includes/db/sales_invoice_db.inc';
+        require_once Kernel::faRoot() . '/sales/includes/db/sales_delivery_db.inc';
+        require_once Kernel::faRoot() . '/sales/includes/db/cust_trans_db.inc';
+        require_once Kernel::faRoot() . '/inventory/includes/db/items_db.inc';
+
+        $cart = new \Cart(ST_CUSTDELIVERY, $d['deliveryId'], ST_SALESINVOICE);
+        if (count($cart->line_items) === 0) {
+            throw new InvalidArgumentException('delivery has no invoiceable lines: ' . $d['deliveryId']);
+        }
+        $cart->document_date = \sql2date($d['date']);
+        $cart->due_date = \sql2date($d['dueDate'] ?: $d['date']);
+        $cart->reference = $d['reference'] ?: $GLOBALS['Refs']->get_next(ST_SALESINVOICE, null, ['date' => $cart->document_date, 'customer' => $cart->customer_id, 'branch' => $cart->Branch]);
+        $cart->Comments = $d['memo'];
+        if ($d['freightCost'] !== null) {
+            $cart->freight_cost = $d['freightCost'];
+        }
+
+        $this->applySalesLineQuantities($cart, $d['lines'], 'invoice');
+        $id = $cart->write(0);
+        if ($id === -1) {
+            throw new InvalidArgumentException('sales invoice reference is already in use');
+        }
+        return ['id' => $id, 'reference' => $cart->reference, 'deliveryId' => $d['deliveryId']];
+    }
+
+    /** @param array<string,mixed> $d */
+    public function createPurchaseReceipt(array $d): array
+    {
+        Kernel::boot();
+        require_once Kernel::faRoot() . '/purchasing/includes/po_class.inc';
+        require_once Kernel::faRoot() . '/purchasing/includes/db/po_db.inc';
+        require_once Kernel::faRoot() . '/purchasing/includes/db/grn_db.inc';
+        require_once Kernel::faRoot() . '/purchasing/includes/db/suppliers_db.inc';
+        require_once Kernel::faRoot() . '/inventory/includes/db/items_db.inc';
+
+        $po = new \purch_order();
+        \read_po($d['orderId'], $po, true);
+        if (!$po->order_no) {
+            throw new InvalidArgumentException('unknown purchase order id: ' . $d['orderId']);
+        }
+        if (count($po->line_items) === 0) {
+            throw new InvalidArgumentException('purchase order has no receivable lines: ' . $d['orderId']);
+        }
+        $po->orig_order_date = \sql2date($d['date']);
+        $po->reference = $d['reference'] ?: $GLOBALS['Refs']->get_next(ST_SUPPRECEIVE, null, $po->orig_order_date);
+        if ($d['location'] !== '') {
+            $po->Location = $d['location'];
+        }
+        $po->Comments = $d['memo'];
+
+        $this->applyPurchaseReceiptQuantities($po, $d['lines']);
+        $id = \add_grn($po);
+        return ['id' => $id, 'reference' => $po->reference, 'orderId' => $d['orderId']];
+    }
+
+    /**
+     * @param object $cart
+     * @param mixed $lines
+     */
+    private function applySalesLineQuantities(object $cart, mixed $lines, string $document): void
+    {
+        if ($lines === [] || $lines === null) {
+            $hasQuantity = false;
+            foreach ($cart->line_items as $line) {
+                if ((float) $line->qty_dispatched > 0) {
+                    $hasQuantity = true;
+                }
+            }
+            if (!$hasQuantity) {
+                throw new InvalidArgumentException('no quantities available for sales ' . $document);
+            }
+            return;
+        }
+        if (!is_array($lines)) {
+            throw new InvalidArgumentException('lines must be an array');
+        }
+
+        $requested = [];
+        foreach ($lines as $line) {
+            if (!is_array($line)) {
+                throw new InvalidArgumentException('each sales ' . $document . ' line must be an object');
+            }
+            $stockId = (string) ($line['stockId'] ?? '');
+            $quantity = (float) ($line['quantity'] ?? 0);
+            if ($stockId === '' || $quantity <= 0) {
+                throw new InvalidArgumentException('each sales ' . $document . ' line requires stockId and positive quantity');
+            }
+            $requested[$stockId] = ($requested[$stockId] ?? 0) + $quantity;
+        }
+
+        foreach ($cart->line_items as $line) {
+            $stockId = (string) $line->stock_id;
+            if (!array_key_exists($stockId, $requested)) {
+                $line->qty_dispatched = 0;
+                continue;
+            }
+            $quantity = (float) $requested[$stockId];
+            if ($quantity > (float) $line->quantity) {
+                throw new InvalidArgumentException('requested quantity exceeds available quantity for stockId: ' . $stockId);
+            }
+            $line->qty_dispatched = $quantity;
+            unset($requested[$stockId]);
+        }
+        if ($requested !== []) {
+            throw new InvalidArgumentException('requested stockId is not available on source document: ' . implode(', ', array_keys($requested)));
+        }
+    }
+
+    /**
+     * @param object $po
+     * @param mixed $lines
+     */
+    private function applyPurchaseReceiptQuantities(object $po, mixed $lines): void
+    {
+        if ($lines === [] || $lines === null) {
+            $hasQuantity = false;
+            foreach ($po->line_items as $line) {
+                $line->receive_qty = max(0, (float) $line->quantity - (float) $line->qty_received);
+                if ($line->receive_qty > 0) {
+                    $hasQuantity = true;
+                }
+            }
+            if (!$hasQuantity) {
+                throw new InvalidArgumentException('no quantities available for purchase receipt');
+            }
+            return;
+        }
+        if (!is_array($lines)) {
+            throw new InvalidArgumentException('lines must be an array');
+        }
+
+        $requested = [];
+        foreach ($lines as $line) {
+            if (!is_array($line)) {
+                throw new InvalidArgumentException('each purchase receipt line must be an object');
+            }
+            $stockId = (string) ($line['stockId'] ?? '');
+            $quantity = (float) ($line['quantity'] ?? 0);
+            if ($stockId === '' || $quantity <= 0) {
+                throw new InvalidArgumentException('each purchase receipt line requires stockId and positive quantity');
+            }
+            $requested[$stockId] = ($requested[$stockId] ?? 0) + $quantity;
+        }
+
+        foreach ($po->line_items as $line) {
+            $stockId = (string) $line->stock_id;
+            if (!array_key_exists($stockId, $requested)) {
+                $line->receive_qty = 0;
+                continue;
+            }
+            $quantity = (float) $requested[$stockId];
+            $available = max(0, (float) $line->quantity - (float) $line->qty_received);
+            if ($quantity > $available) {
+                throw new InvalidArgumentException('requested quantity exceeds receivable quantity for stockId: ' . $stockId);
+            }
+            $line->receive_qty = $quantity;
+            unset($requested[$stockId]);
+        }
+        if ($requested !== []) {
+            throw new InvalidArgumentException('requested stockId is not available on purchase order: ' . implode(', ', array_keys($requested)));
+        }
+    }
+
     /** @param array<string,mixed> $d */
     public function createCustomerPayment(array $d): array
     {

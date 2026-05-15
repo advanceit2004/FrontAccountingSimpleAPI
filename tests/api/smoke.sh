@@ -193,6 +193,38 @@ PURCHASE_ORDER_ID=$(json_get "$TMP_DIR/response.json" data.id)
 [[ "$PURCHASE_ORDER_ID" =~ ^[0-9]+$ ]] || fail "invalid purchase order id: $PURCHASE_ORDER_ID"
 request GET purchase/orders
 
+info "create purchase receipt"
+PURCHASE_RECEIPT_REF="APIGRN$TS"
+PURCHASE_RECEIPT_BODY=$(cat <<JSON
+{"orderId":$PURCHASE_ORDER_ID,"date":"2026-05-15","reference":"$PURCHASE_RECEIPT_REF","location":"MEL","lines":[{"stockId":"$STOCK_ID","quantity":1}]}
+JSON
+)
+request POST purchase/receipts "$PURCHASE_RECEIPT_BODY"
+PURCHASE_RECEIPT_ID=$(json_get "$TMP_DIR/response.json" data.id)
+[[ "$PURCHASE_RECEIPT_ID" =~ ^[0-9]+$ ]] || fail "invalid purchase receipt id: $PURCHASE_RECEIPT_ID"
+
+info "create sales delivery"
+SALES_DELIVERY_REF="APIDN$TS"
+SALES_DELIVERY_BODY=$(cat <<JSON
+{"orderId":$SALES_ORDER_ID,"date":"2026-05-15","deliveryDate":"2026-05-15","reference":"$SALES_DELIVERY_REF","location":"MEL","lines":[{"stockId":"$STOCK_ID","quantity":1}]}
+JSON
+)
+request POST sales/deliveries "$SALES_DELIVERY_BODY"
+SALES_DELIVERY_ID=$(json_get "$TMP_DIR/response.json" data.id)
+[[ "$SALES_DELIVERY_ID" =~ ^[0-9]+$ ]] || fail "invalid sales delivery id: $SALES_DELIVERY_ID"
+
+info "create sales invoice"
+SALES_INVOICE_REF="APIINV$TS"
+SALES_INVOICE_BODY=$(cat <<JSON
+{"deliveryId":$SALES_DELIVERY_ID,"date":"2026-05-15","dueDate":"2026-05-15","reference":"$SALES_INVOICE_REF","lines":[{"stockId":"$STOCK_ID","quantity":1}]}
+JSON
+)
+request POST sales/invoices "$SALES_INVOICE_BODY"
+SALES_INVOICE_ID=$(json_get "$TMP_DIR/response.json" data.id)
+[[ "$SALES_INVOICE_ID" =~ ^[0-9]+$ ]] || fail "invalid sales invoice id: $SALES_INVOICE_ID"
+request GET sales/invoices
+
+
 info "create customer payment"
 CUSTOMER_PAYMENT_REF="APICP$TS"
 CUSTOMER_PAYMENT_BODY=$(cat <<JSON

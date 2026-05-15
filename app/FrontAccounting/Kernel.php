@@ -213,6 +213,7 @@ final class Kernel
         global $installed_extensions, $installed_languages, $dflt_lang;
         global $version, $src_version, $db_version;
         global $security_areas, $security_sections, $security_groups, $security_headings;
+        global $document_child_types;
         global $Hooks, $SysPrefs, $Ajax, $Refs, $Validate, $Editors, $Pagehelp, $login_faillog;
         global $go_debug, $go_debug_db;
 

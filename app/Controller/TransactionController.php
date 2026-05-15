@@ -95,6 +95,65 @@ final class TransactionController
         }
     }
 
+
+    public function createSalesDelivery(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $b = RequestData::body($request);
+            $data = [
+                'orderId' => RequestData::int($b, 'orderId'),
+                'date' => RequestData::string($b, 'date'),
+                'deliveryDate' => RequestData::string($b, 'deliveryDate', ''),
+                'reference' => RequestData::string($b, 'reference', ''),
+                'memo' => RequestData::string($b, 'memo', ''),
+                'location' => RequestData::string($b, 'location', ''),
+                'freightCost' => array_key_exists('freightCost', $b) ? RequestData::float($b, 'freightCost') : null,
+                'backOrder' => filter_var($b['backOrder'] ?? true, FILTER_VALIDATE_BOOL),
+                'lines' => $b['lines'] ?? [],
+            ];
+            return JsonResponse::success($response, $this->service->createSalesDelivery($data), [], 201);
+        } catch (InvalidArgumentException $e) {
+            return JsonResponse::error($response, 'VALIDATION_ERROR', $e->getMessage(), 422);
+        }
+    }
+
+    public function createSalesInvoice(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $b = RequestData::body($request);
+            $data = [
+                'deliveryId' => RequestData::int($b, 'deliveryId'),
+                'date' => RequestData::string($b, 'date'),
+                'dueDate' => RequestData::string($b, 'dueDate', ''),
+                'reference' => RequestData::string($b, 'reference', ''),
+                'memo' => RequestData::string($b, 'memo', ''),
+                'freightCost' => array_key_exists('freightCost', $b) ? RequestData::float($b, 'freightCost') : null,
+                'lines' => $b['lines'] ?? [],
+            ];
+            return JsonResponse::success($response, $this->service->createSalesInvoice($data), [], 201);
+        } catch (InvalidArgumentException $e) {
+            return JsonResponse::error($response, 'VALIDATION_ERROR', $e->getMessage(), 422);
+        }
+    }
+
+    public function createPurchaseReceipt(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $b = RequestData::body($request);
+            $data = [
+                'orderId' => RequestData::int($b, 'orderId'),
+                'date' => RequestData::string($b, 'date'),
+                'reference' => RequestData::string($b, 'reference', ''),
+                'memo' => RequestData::string($b, 'memo', ''),
+                'location' => RequestData::string($b, 'location', ''),
+                'lines' => $b['lines'] ?? [],
+            ];
+            return JsonResponse::success($response, $this->service->createPurchaseReceipt($data), [], 201);
+        } catch (InvalidArgumentException $e) {
+            return JsonResponse::error($response, 'VALIDATION_ERROR', $e->getMessage(), 422);
+        }
+    }
+
     public function createCustomerPayment(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         try {
