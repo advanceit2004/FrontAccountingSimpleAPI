@@ -10,16 +10,23 @@ final class TokenService
 {
     public const TTL_SECONDS = 3600;
 
+    public static function ttlSeconds(): int
+    {
+        $ttl = (int) (getenv('FA_API_TOKEN_TTL') ?: self::TTL_SECONDS);
+        return $ttl > 0 ? $ttl : self::TTL_SECONDS;
+    }
+
     /** @param list<int> $areas */
     public static function issue(int $company, string $username, ?int $userId, array $areas): string
     {
         $now = time();
+        $ttl = self::ttlSeconds();
         $claims = [
             'iss' => 'frontaccounting-api',
             'aud' => 'frontaccounting-api',
             'iat' => $now,
             'nbf' => $now,
-            'exp' => $now + self::TTL_SECONDS,
+            'exp' => $now + $ttl,
             'company' => $company,
             'username' => $username,
             'userId' => $userId,

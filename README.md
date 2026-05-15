@@ -89,3 +89,16 @@ Error:
 ```json
 {"success":false,"error":{"code":"VALIDATION_ERROR","message":"..."}}
 ```
+
+## Stage 6/7 additions
+
+- OpenAPI draft: `docs/openapi.yaml`
+- Configurable token settings:
+  - `FA_API_JWT_SECRET` should be set in production.
+  - `FA_API_TOKEN_TTL` controls token lifetime in seconds; default is `3600`.
+- List endpoints support simple in-memory pagination:
+  - `?page=1&perPage=50`
+- Single-resource endpoints exist for items, categories, customers, suppliers, bank accounts, and GL accounts.
+- Inactive patch endpoints prefer soft deactivation over hard deletes.
+- Business read endpoints exist for sales orders, invoices, purchase orders, customer payments, and supplier payments.
+- Payment creation endpoints exist for customer and supplier payments.

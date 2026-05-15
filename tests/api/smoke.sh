@@ -56,7 +56,7 @@ TOKEN=$(json_get "$TMP_DIR/login.json" data.accessToken)
 [[ -n "$TOKEN" ]] || fail "empty token"
 
 info "read endpoints"
-for ep in companies items/categories items customers suppliers currencies exchange-rates bank-accounts gl/accounts tax/types tax/groups locations; do
+for ep in companies items/categories items customers suppliers currencies exchange-rates bank-accounts gl/accounts tax/types tax/groups locations sales/orders sales/invoices purchase/orders customer-payments supplier-payments; do
   request GET "$ep"
   python3 - <<PY || fail "$ep did not return success JSON"
 import json
@@ -133,12 +133,58 @@ JOURNAL_ID=$(json_get "$TMP_DIR/response.json" data.id)
 info "read journal entry"
 request GET "journal-entries/$JOURNAL_ID"
 
+info "single-resource reads"
+request GET "items/$STOCK_ID"
+request GET "items/categories/$CATEGORY_ID"
+request GET "customers/$CUSTOMER_ID"
+request GET "suppliers/$SUPPLIER_ID"
+request GET "bank-accounts"
+BANK_ID=$(python3 - <<PY
+import json
+p=json.load(open("$TMP_DIR/response.json"))
+print(p["data"][0]["id"])
+PY
+)
+request GET "bank-accounts/$BANK_ID"
+request GET "gl/accounts/1200"
+
+info "pagination"
+request GET "items?page=1&perPage=2"
+python3 - <<PY || fail "pagination meta invalid"
+import json
+p=json.load(open('$TMP_DIR/response.json'))
+assert p['success'] is True
+assert p['meta']['page'] == 1
+assert p['meta']['perPage'] == 2
+assert p['meta']['count'] <= 2
+PY
+
+info "inactive patches"
+request PATCH "items/$STOCK_ID/inactive" '{"inactive":true}'
+request PATCH "items/$STOCK_ID/inactive" '{"inactive":false}'
+
 info "journal validation"
 BAD_JOURNAL_BODY='{"date":"2026-05-15","lines":[{"account":"NOPE","amount":10},{"account":"4050","amount":-10}]}'
 BAD_CODE=$(curl -sS -o "$TMP_DIR/bad_journal.json" -w '%{http_code}' -X POST \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d "$BAD_JOURNAL_BODY" "$BASE_URL/journal-entries")
 [[ "$BAD_CODE" == 422 ]] || { cat "$TMP_DIR/bad_journal.json" >&2; fail "bad journal expected 422, got $BAD_CODE"; }
+
+info "create customer payment"
+CUSTOMER_PAYMENT_REF="APICP$TS"
+CUSTOMER_PAYMENT_BODY=$(cat <<JSON
+{"customerId":$CUSTOMER_ID,"branchId":0,"bankAccount":1,"date":"2026-05-15","reference":"$CUSTOMER_PAYMENT_REF","amount":1,"memo":"API smoke customer payment $TS"}
+JSON
+)
+request POST customer-payments "$CUSTOMER_PAYMENT_BODY"
+
+info "create supplier payment"
+SUPPLIER_PAYMENT_REF="APISP$TS"
+SUPPLIER_PAYMENT_BODY=$(cat <<JSON
+{"supplierId":$SUPPLIER_ID,"bankAccount":1,"date":"2026-05-15","reference":"$SUPPLIER_PAYMENT_REF","amount":1,"memo":"API smoke supplier payment $TS"}
+JSON
+)
+request POST supplier-payments "$SUPPLIER_PAYMENT_BODY"
 
 info "create stock adjustment"
 STOCK_REF="APIS$TS"

@@ -39,7 +39,7 @@ final class AuthController
         return JsonResponse::success($response, [
             'accessToken' => $token,
             'tokenType' => 'Bearer',
-            'expiresIn' => TokenService::TTL_SECONDS,
+            'expiresIn' => TokenService::ttlSeconds(),
             'company' => $identity['company'],
             'username' => $identity['username'],
         ]);

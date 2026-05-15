@@ -42,6 +42,54 @@ final class TransactionController
     }
 
 
+
+    public function createCustomerPayment(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $b = RequestData::body($request);
+            $data = [
+                'customerId' => RequestData::int($b, 'customerId'),
+                'branchId' => RequestData::int($b, 'branchId', 0),
+                'bankAccount' => RequestData::int($b, 'bankAccount'),
+                'date' => RequestData::string($b, 'date'),
+                'reference' => RequestData::string($b, 'reference'),
+                'amount' => RequestData::float($b, 'amount'),
+                'discount' => RequestData::float($b, 'discount', 0),
+                'memo' => RequestData::string($b, 'memo', ''),
+                'charge' => RequestData::float($b, 'charge', 0),
+                'bankAmount' => RequestData::float($b, 'bankAmount', 0),
+                'dimension1' => RequestData::int($b, 'dimension1', 0),
+                'dimension2' => RequestData::int($b, 'dimension2', 0),
+            ];
+            return JsonResponse::success($response, $this->service->createCustomerPayment($data), [], 201);
+        } catch (InvalidArgumentException $e) {
+            return JsonResponse::error($response, 'VALIDATION_ERROR', $e->getMessage(), 422);
+        }
+    }
+
+    public function createSupplierPayment(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $b = RequestData::body($request);
+            $data = [
+                'supplierId' => RequestData::int($b, 'supplierId'),
+                'bankAccount' => RequestData::int($b, 'bankAccount'),
+                'date' => RequestData::string($b, 'date'),
+                'reference' => RequestData::string($b, 'reference'),
+                'amount' => RequestData::float($b, 'amount'),
+                'discount' => RequestData::float($b, 'discount', 0),
+                'memo' => RequestData::string($b, 'memo', ''),
+                'bankCharge' => RequestData::float($b, 'bankCharge', 0),
+                'bankAmount' => RequestData::float($b, 'bankAmount', 0),
+                'dimension1' => RequestData::int($b, 'dimension1', 0),
+                'dimension2' => RequestData::int($b, 'dimension2', 0),
+            ];
+            return JsonResponse::success($response, $this->service->createSupplierPayment($data), [], 201);
+        } catch (InvalidArgumentException $e) {
+            return JsonResponse::error($response, 'VALIDATION_ERROR', $e->getMessage(), 422);
+        }
+    }
+
     public function getJournalEntry(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
         $entry = $this->service->getJournalEntry((int) $args['id']);

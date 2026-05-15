@@ -61,6 +61,31 @@ final class TransactionService
     }
 
 
+
+    /** @param array<string,mixed> $d */
+    public function createCustomerPayment(array $d): array
+    {
+        Kernel::boot();
+        require_once Kernel::faRoot() . '/sales/includes/db/payment_db.inc';
+        require_once Kernel::faRoot() . '/sales/includes/db/branches_db.inc';
+        require_once Kernel::faRoot() . '/gl/includes/db/gl_db_bank_accounts.inc';
+        $date = \sql2date($d['date']);
+        $id = \write_customer_payment(0, $d['customerId'], $d['branchId'], $d['bankAccount'], $date, $d['reference'], $d['amount'], $d['discount'], $d['memo'], 0, $d['charge'], $d['bankAmount'], $d['dimension1'], $d['dimension2']);
+        return ['id' => $id, 'reference' => $d['reference']];
+    }
+
+    /** @param array<string,mixed> $d */
+    public function createSupplierPayment(array $d): array
+    {
+        Kernel::boot();
+        require_once Kernel::faRoot() . '/purchasing/includes/db/supp_payment_db.inc';
+        require_once Kernel::faRoot() . '/purchasing/includes/db/suppliers_db.inc';
+        require_once Kernel::faRoot() . '/gl/includes/db/gl_db_bank_accounts.inc';
+        $date = \sql2date($d['date']);
+        $id = \write_supp_payment(0, $d['supplierId'], $d['bankAccount'], $date, $d['reference'], $d['amount'], $d['discount'], $d['memo'], $d['bankCharge'], $d['bankAmount'], $d['dimension1'], $d['dimension2']);
+        return ['id' => $id, 'reference' => $d['reference']];
+    }
+
     public function getJournalEntry(int $id): array
     {
         Kernel::boot();

@@ -1,0 +1,72 @@
+openapi: 3.1.0
+info:
+  title: FrontAccounting Slim 4 API
+  version: v1
+  description: Modern JSON API for FrontAccounting 2.4.20 on PHP 8.4.
+servers:
+  - url: /modules/api/public/index.php/v1
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ApiSuccess:
+      type: object
+      properties:
+        success: { type: boolean, const: true }
+        data: {}
+        meta: { type: object }
+    ApiError:
+      type: object
+      properties:
+        success: { type: boolean, const: false }
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+paths:
+  /health:
+    get:
+      security: []
+      summary: Health check
+      responses: { '200': { description: OK } }
+  /auth/login:
+    post:
+      security: []
+      summary: Login with FrontAccounting credentials
+      responses: { '200': { description: Bearer token } }
+  /companies: { get: { summary: List companies, responses: { '200': { description: OK } } } }
+  /items/categories: { get: { summary: List item categories, responses: { '200': { description: OK } } }, post: { summary: Create item category, responses: { '201': { description: Created } } } }
+  /items/categories/{id}: { get: { summary: Get item category, responses: { '200': { description: OK }, '404': { description: Not found } } }, put: { summary: Update item category, responses: { '200': { description: OK } } } }
+  /items/categories/{id}/inactive: { patch: { summary: Set item category inactive flag, responses: { '200': { description: OK } } } }
+  /items: { get: { summary: List items, responses: { '200': { description: OK } } }, post: { summary: Create item, responses: { '201': { description: Created } } } }
+  /items/{stockId}: { get: { summary: Get item, responses: { '200': { description: OK }, '404': { description: Not found } } }, put: { summary: Update item, responses: { '200': { description: OK } } } }
+  /items/{stockId}/inactive: { patch: { summary: Set item inactive flag, responses: { '200': { description: OK } } } }
+  /customers: { get: { summary: List customers, responses: { '200': { description: OK } } }, post: { summary: Create customer, responses: { '201': { description: Created } } } }
+  /customers/{id}: { get: { summary: Get customer, responses: { '200': { description: OK }, '404': { description: Not found } } }, put: { summary: Update customer, responses: { '200': { description: OK } } } }
+  /customers/{id}/inactive: { patch: { summary: Set customer inactive flag, responses: { '200': { description: OK } } } }
+  /suppliers: { get: { summary: List suppliers, responses: { '200': { description: OK } } }, post: { summary: Create supplier, responses: { '201': { description: Created } } } }
+  /suppliers/{id}: { get: { summary: Get supplier, responses: { '200': { description: OK }, '404': { description: Not found } } }, put: { summary: Update supplier, responses: { '200': { description: OK } } } }
+  /suppliers/{id}/inactive: { patch: { summary: Set supplier inactive flag, responses: { '200': { description: OK } } } }
+  /currencies: { get: { summary: List currencies, responses: { '200': { description: OK } } } }
+  /exchange-rates: { get: { summary: List exchange rates, responses: { '200': { description: OK } } } }
+  /bank-accounts: { get: { summary: List bank accounts, responses: { '200': { description: OK } } } }
+  /bank-accounts/{id}: { get: { summary: Get bank account, responses: { '200': { description: OK }, '404': { description: Not found } } } }
+  /gl/accounts: { get: { summary: List GL accounts, responses: { '200': { description: OK } } } }
+  /gl/accounts/{code}: { get: { summary: Get GL account, responses: { '200': { description: OK }, '404': { description: Not found } } } }
+  /tax/types: { get: { summary: List tax types, responses: { '200': { description: OK } } } }
+  /tax/groups: { get: { summary: List tax groups, responses: { '200': { description: OK } } } }
+  /locations: { get: { summary: List inventory locations, responses: { '200': { description: OK } } } }
+  /journal-entries: { post: { summary: Create journal entry, responses: { '201': { description: Created } } } }
+  /journal-entries/{id}: { get: { summary: Get journal entry, responses: { '200': { description: OK }, '404': { description: Not found } } } }
+  /stock-adjustments: { post: { summary: Create stock adjustment, responses: { '201': { description: Created } } } }
+  /sales/orders: { get: { summary: List sales orders, responses: { '200': { description: OK } } } }
+  /sales/invoices: { get: { summary: List sales invoices, responses: { '200': { description: OK } } } }
+  /purchase/orders: { get: { summary: List purchase orders, responses: { '200': { description: OK } } } }
+  /customer-payments: { get: { summary: List customer payments, responses: { '200': { description: OK } } }, post: { summary: Create customer payment, responses: { '201': { description: Created } } } }
+  /supplier-payments: { get: { summary: List supplier payments, responses: { '200': { description: OK } } }, post: { summary: Create supplier payment, responses: { '201': { description: Created } } } }

@@ -16,8 +16,15 @@ final class Db
         return $rows;
     }
 
+    /** @return array<string,mixed> */
+    public static function row(mixed $result): array
+    {
+        $row = \db_fetch_assoc($result);
+        return is_array($row) ? self::normalizeRow($row) : [];
+    }
+
     /** @param array<string,mixed> $row @return array<string,mixed> */
-    private static function normalizeRow(array $row): array
+    public static function normalizeRow(array $row): array
     {
         foreach ($row as $key => $value) {
             if (is_string($value) && is_numeric($value)) {
