@@ -13,34 +13,16 @@ This branch is a modern API rewrite for PHP 8.4. It is not backward-compatible w
 
 ## API base
 
-Direct front-controller URL:
-
 ```text
 /modules/api/public/index.php/v1
 ```
 
-If Apache rewrite is enabled from the module folder, clean URLs can be exposed later as:
-
-```text
-/modules/api/v1
-```
-
-## Milestone 1 endpoints
-
-```text
-GET  /v1/health
-POST /v1/auth/login
-GET  /v1/items/categories
-```
-
 ## Authentication
-
-Login against FrontAccounting:
 
 ```bash
 curl -i \
   -H 'Content-Type: application/json' \
-  -d '{"company":0,"username":"admin","password":"secret"}' \
+  -d '{"company":0,"username":"demouser","password":"password"}' \
   http://localhost:8080/modules/api/public/index.php/v1/auth/login
 ```
 
@@ -52,11 +34,58 @@ curl -i \
   http://localhost:8080/modules/api/public/index.php/v1/items/categories
 ```
 
-## Development status
+## Endpoints
 
-This is a new API under active development. The first milestone proves:
+### System/Auth
 
-- Slim 4 boots under PHP 8.4
-- FrontAccounting 2.4.20 can be bootstrapped safely enough for API use
-- FrontAccounting user login can issue a Bearer token
-- A protected read endpoint can return JSON
+```text
+GET  /v1/health
+POST /v1/auth/login
+GET  /v1/companies
+```
+
+### Read endpoints
+
+```text
+GET /v1/items/categories
+GET /v1/items
+GET /v1/customers
+GET /v1/suppliers
+GET /v1/currencies
+GET /v1/exchange-rates
+GET /v1/bank-accounts
+GET /v1/gl/accounts
+GET /v1/tax/types
+GET /v1/tax/groups
+GET /v1/locations
+```
+
+### Write endpoints
+
+```text
+POST /v1/items/categories
+PUT  /v1/items/categories/{id}
+POST /v1/items
+PUT  /v1/items/{stockId}
+POST /v1/customers
+PUT  /v1/customers/{id}
+POST /v1/suppliers
+PUT  /v1/suppliers/{id}
+GET  /v1/journal-entries/{id}
+POST /v1/journal-entries
+POST /v1/stock-adjustments
+```
+
+## Response format
+
+Success:
+
+```json
+{"success":true,"data":{},"meta":{}}
+```
+
+Error:
+
+```json
+{"success":false,"error":{"code":"VALIDATION_ERROR","message":"..."}}
+```
