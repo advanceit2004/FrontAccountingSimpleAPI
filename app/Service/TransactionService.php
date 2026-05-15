@@ -389,6 +389,126 @@ final class TransactionService
         }
     }
 
+
+    /** @param array<string,mixed> $d */
+    public function createSupplierInvoice(array $d): array
+    {
+        Kernel::boot();
+        require_once Kernel::faRoot() . '/purchasing/includes/supp_trans_class.inc';
+        require_once Kernel::faRoot() . '/purchasing/includes/db/invoice_db.inc';
+        require_once Kernel::faRoot() . '/purchasing/includes/db/grn_db.inc';
+        require_once Kernel::faRoot() . '/purchasing/includes/db/suppliers_db.inc';
+        require_once Kernel::faRoot() . '/inventory/includes/db/items_db.inc';
+
+        $grnBatch = \get_grn_batch($d['receiptId']);
+        if (!$grnBatch) {
+            throw new InvalidArgumentException('unknown purchase receipt id: ' . $d['receiptId']);
+        }
+
+        $invoice = new \supp_trans(ST_SUPPINVOICE);
+        $invoice->supplier_id = (int) $grnBatch['supplier_id'];
+        $invoice->tran_date = \sql2date($d['date']);
+        \read_supplier_details_to_trans($invoice, $invoice->supplier_id);
+        $invoice->tran_date = \sql2date($d['date']);
+        $invoice->due_date = \sql2date($d['dueDate'] ?: $d['date']);
+        $invoice->reference = $d['reference'] ?: $GLOBALS['Refs']->get_next(ST_SUPPINVOICE, null, $invoice->tran_date);
+        $invoice->supp_reference = $d['supplierReference'];
+        $invoice->Comments = $d['memo'];
+        if ($d['dimension1'] !== 0) {
+            $invoice->dimension = $d['dimension1'];
+        }
+        if ($d['dimension2'] !== 0) {
+            $invoice->dimension2 = $d['dimension2'];
+        }
+        $invoice->ov_amount = 0;
+        $invoice->ov_gst = 0;
+        $invoice->ov_discount = 0;
+        $invoice->ex_rate = $d['exchangeRate'];
+
+        $this->addGrnItemsToSupplierInvoice($invoice, $d['receiptId'], $d['lines']);
+        if (!$invoice->is_valid_trans_to_post()) {
+            throw new InvalidArgumentException('supplier invoice has no invoiceable lines');
+        }
+
+        $id = \add_supp_invoice($invoice);
+        return ['id' => $id, 'reference' => $invoice->reference, 'supplierReference' => $invoice->supp_reference, 'receiptId' => $d['receiptId']];
+    }
+
+    /**
+     * @param object $invoice
+     * @param mixed $lines
+     */
+    private function addGrnItemsToSupplierInvoice(object $invoice, int $receiptId, mixed $lines): void
+    {
+        $requested = null;
+        if ($lines !== [] && $lines !== null) {
+            if (!is_array($lines)) {
+                throw new InvalidArgumentException('lines must be an array');
+            }
+            $requested = [];
+            foreach ($lines as $line) {
+                if (!is_array($line)) {
+                    throw new InvalidArgumentException('each supplier invoice line must be an object');
+                }
+                $stockId = (string) ($line['stockId'] ?? '');
+                $quantity = (float) ($line['quantity'] ?? 0);
+                if ($stockId === '' || $quantity <= 0) {
+                    throw new InvalidArgumentException('each supplier invoice line requires stockId and positive quantity');
+                }
+                $requested[$stockId] = [
+                    'quantity' => ($requested[$stockId]['quantity'] ?? 0) + $quantity,
+                    'price' => array_key_exists('price', $line) ? (float) $line['price'] : null,
+                ];
+            }
+        }
+
+        $result = \get_grn_items($receiptId, $invoice->supplier_id, true, false, 0);
+        $added = false;
+        while ($row = \db_fetch_assoc($result)) {
+            $stockId = (string) $row['item_code'];
+            $available = (float) $row['qty_recd'] - (float) $row['quantity_inv'];
+            if ($available <= 0) {
+                continue;
+            }
+            $quantity = $available;
+            $price = (float) ($row['act_price'] ?: $row['unit_price']);
+            if ($requested !== null) {
+                if (!array_key_exists($stockId, $requested)) {
+                    continue;
+                }
+                $quantity = (float) $requested[$stockId]['quantity'];
+                if ($quantity > $available) {
+                    throw new InvalidArgumentException('requested quantity exceeds invoiceable quantity for stockId: ' . $stockId);
+                }
+                if ($requested[$stockId]['price'] !== null) {
+                    $price = (float) $requested[$stockId]['price'];
+                }
+                unset($requested[$stockId]);
+            }
+
+            $invoice->add_grn_to_trans(
+                (int) $row['id'],
+                (int) $row['po_detail_item'],
+                $stockId,
+                (string) $row['description'],
+                (float) $row['qty_recd'],
+                (float) $row['quantity_inv'],
+                $quantity,
+                (float) $row['unit_price'],
+                $price,
+                (float) $row['std_cost_unit'],
+                ''
+            );
+            $added = true;
+        }
+        if ($requested !== null && $requested !== []) {
+            throw new InvalidArgumentException('requested stockId is not available on purchase receipt: ' . implode(', ', array_keys($requested)));
+        }
+        if (!$added) {
+            throw new InvalidArgumentException('purchase receipt has no invoiceable lines: ' . $receiptId);
+        }
+    }
+
     /** @param array<string,mixed> $d */
     public function createCustomerPayment(array $d): array
     {

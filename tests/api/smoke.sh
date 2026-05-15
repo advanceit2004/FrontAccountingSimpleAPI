@@ -203,6 +203,17 @@ request POST purchase/receipts "$PURCHASE_RECEIPT_BODY"
 PURCHASE_RECEIPT_ID=$(json_get "$TMP_DIR/response.json" data.id)
 [[ "$PURCHASE_RECEIPT_ID" =~ ^[0-9]+$ ]] || fail "invalid purchase receipt id: $PURCHASE_RECEIPT_ID"
 
+info "create supplier invoice"
+SUPPLIER_INVOICE_REF="APISI$TS"
+SUPPLIER_INVOICE_BODY=$(cat <<JSON
+{"receiptId":$PURCHASE_RECEIPT_ID,"date":"2026-05-15","dueDate":"2026-05-15","reference":"$SUPPLIER_INVOICE_REF","supplierReference":"API smoke SI $TS","lines":[{"stockId":"$STOCK_ID","quantity":1,"price":3}]}
+JSON
+)
+request POST purchase/invoices "$SUPPLIER_INVOICE_BODY"
+SUPPLIER_INVOICE_ID=$(json_get "$TMP_DIR/response.json" data.id)
+[[ "$SUPPLIER_INVOICE_ID" =~ ^[0-9]+$ ]] || fail "invalid supplier invoice id: $SUPPLIER_INVOICE_ID"
+
+
 info "create sales delivery"
 SALES_DELIVERY_REF="APIDN$TS"
 SALES_DELIVERY_BODY=$(cat <<JSON

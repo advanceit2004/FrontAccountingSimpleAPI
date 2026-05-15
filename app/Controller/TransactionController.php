@@ -154,6 +154,29 @@ final class TransactionController
         }
     }
 
+
+    public function createSupplierInvoice(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $b = RequestData::body($request);
+            $data = [
+                'receiptId' => RequestData::int($b, 'receiptId'),
+                'date' => RequestData::string($b, 'date'),
+                'dueDate' => RequestData::string($b, 'dueDate', ''),
+                'reference' => RequestData::string($b, 'reference', ''),
+                'supplierReference' => RequestData::string($b, 'supplierReference'),
+                'memo' => RequestData::string($b, 'memo', ''),
+                'exchangeRate' => RequestData::float($b, 'exchangeRate', 1),
+                'dimension1' => RequestData::int($b, 'dimension1', 0),
+                'dimension2' => RequestData::int($b, 'dimension2', 0),
+                'lines' => $b['lines'] ?? [],
+            ];
+            return JsonResponse::success($response, $this->service->createSupplierInvoice($data), [], 201);
+        } catch (InvalidArgumentException $e) {
+            return JsonResponse::error($response, 'VALIDATION_ERROR', $e->getMessage(), 422);
+        }
+    }
+
     public function createCustomerPayment(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         try {
