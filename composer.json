@@ -1,15 +1,19 @@
 {
-    "require": {
-        "slim/slim": "~2.6.3"
-    },
-    "require-dev": {
-        "phpunit/phpunit": "~4.2.6",
-        "guzzlehttp/guzzle": "~6.3",
-        "zircote/swagger-php": "^2.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "FAAPI\\": "src/"
-        }
+  "name": "advanceit2004/frontaccounting-api",
+  "description": "Modern Slim 4 JSON API for FrontAccounting 2.4.x",
+  "type": "project",
+  "license": "GPL-2.0-or-later",
+  "require": {
+    "php": "^8.4",
+    "slim/slim": "^4.14",
+    "slim/psr7": "^1.7"
+  },
+  "autoload": {
+    "psr-4": {
+      "FAAPI\\": "app/"
     }
+  },
+  "config": {
+    "sort-packages": true
+  }
 }
