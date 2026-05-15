@@ -202,6 +202,7 @@ JSON
 request POST purchase/receipts "$PURCHASE_RECEIPT_BODY"
 PURCHASE_RECEIPT_ID=$(json_get "$TMP_DIR/response.json" data.id)
 [[ "$PURCHASE_RECEIPT_ID" =~ ^[0-9]+$ ]] || fail "invalid purchase receipt id: $PURCHASE_RECEIPT_ID"
+request GET "purchase/receipts/$PURCHASE_RECEIPT_ID"
 
 info "create supplier invoice"
 SUPPLIER_INVOICE_REF="APISI$TS"
@@ -212,6 +213,7 @@ JSON
 request POST purchase/invoices "$SUPPLIER_INVOICE_BODY"
 SUPPLIER_INVOICE_ID=$(json_get "$TMP_DIR/response.json" data.id)
 [[ "$SUPPLIER_INVOICE_ID" =~ ^[0-9]+$ ]] || fail "invalid supplier invoice id: $SUPPLIER_INVOICE_ID"
+request GET "purchase/invoices/$SUPPLIER_INVOICE_ID"
 
 
 info "create sales delivery"
@@ -223,6 +225,7 @@ JSON
 request POST sales/deliveries "$SALES_DELIVERY_BODY"
 SALES_DELIVERY_ID=$(json_get "$TMP_DIR/response.json" data.id)
 [[ "$SALES_DELIVERY_ID" =~ ^[0-9]+$ ]] || fail "invalid sales delivery id: $SALES_DELIVERY_ID"
+request GET "sales/deliveries/$SALES_DELIVERY_ID"
 
 info "create sales invoice"
 SALES_INVOICE_REF="APIINV$TS"
@@ -233,6 +236,7 @@ JSON
 request POST sales/invoices "$SALES_INVOICE_BODY"
 SALES_INVOICE_ID=$(json_get "$TMP_DIR/response.json" data.id)
 [[ "$SALES_INVOICE_ID" =~ ^[0-9]+$ ]] || fail "invalid sales invoice id: $SALES_INVOICE_ID"
+request GET "sales/invoices/$SALES_INVOICE_ID"
 request GET sales/invoices
 
 

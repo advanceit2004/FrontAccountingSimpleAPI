@@ -217,6 +217,92 @@ final class CatalogService
         return $this->queryRows($sql, 'could not get purchase orders');
     }
 
+
+    /** @return array<string,mixed> */
+    public function salesDelivery(int $id): array
+    {
+        Kernel::boot();
+        return $this->debtorTransDetail(ST_CUSTDELIVERY, $id);
+    }
+
+    /** @return array<string,mixed> */
+    public function salesInvoice(int $id): array
+    {
+        Kernel::boot();
+        return $this->debtorTransDetail(ST_SALESINVOICE, $id);
+    }
+
+    /** @return array<string,mixed> */
+    public function purchaseReceipt(int $id): array
+    {
+        Kernel::boot();
+        $header = Db::row(\db_query(
+            'SELECT gb.*, s.supp_name AS supplier_name, po.reference AS purchase_order_reference '
+            . 'FROM ' . TB_PREF . 'grn_batch gb '
+            . 'LEFT JOIN ' . TB_PREF . 'suppliers s ON s.supplier_id=gb.supplier_id '
+            . 'LEFT JOIN ' . TB_PREF . 'purch_orders po ON po.order_no=gb.purch_order_no '
+            . 'WHERE gb.id=' . \db_escape($id),
+            'could not get purchase receipt'
+        ));
+        if ($header === []) {
+            return [];
+        }
+        $header['lines'] = $this->queryRows(
+            'SELECT gi.*, pod.unit_price, pod.std_cost_unit, pod.quantity_ordered, pod.quantity_received, pod.qty_invoiced '
+            . 'FROM ' . TB_PREF . 'grn_items gi '
+            . 'LEFT JOIN ' . TB_PREF . 'purch_order_details pod ON pod.po_detail_item=gi.po_detail_item '
+            . 'WHERE gi.grn_batch_id=' . \db_escape($id) . ' ORDER BY gi.id',
+            'could not get purchase receipt lines'
+        );
+        return $header;
+    }
+
+    /** @return array<string,mixed> */
+    public function supplierInvoice(int $id): array
+    {
+        Kernel::boot();
+        $header = Db::row(\db_query(
+            'SELECT st.*, s.supp_name AS supplier_name '
+            . 'FROM ' . TB_PREF . 'supp_trans st '
+            . 'LEFT JOIN ' . TB_PREF . 'suppliers s ON s.supplier_id=st.supplier_id '
+            . 'WHERE st.type=' . \db_escape(ST_SUPPINVOICE) . ' AND st.trans_no=' . \db_escape($id),
+            'could not get supplier invoice'
+        ));
+        if ($header === []) {
+            return [];
+        }
+        $header['lines'] = $this->queryRows(
+            'SELECT sii.*, gi.grn_batch_id, gi.item_code AS grn_item_code '
+            . 'FROM ' . TB_PREF . 'supp_invoice_items sii '
+            . 'LEFT JOIN ' . TB_PREF . 'grn_items gi ON gi.id=sii.grn_item_id '
+            . 'WHERE sii.supp_trans_type=' . \db_escape(ST_SUPPINVOICE) . ' AND sii.supp_trans_no=' . \db_escape($id) . ' ORDER BY sii.id',
+            'could not get supplier invoice lines'
+        );
+        return $header;
+    }
+
+    /** @return array<string,mixed> */
+    private function debtorTransDetail(int $type, int $id): array
+    {
+        $header = Db::row(\db_query(
+            'SELECT dt.*, dm.name AS customer_name, cb.br_name AS branch_name '
+            . 'FROM ' . TB_PREF . 'debtor_trans dt '
+            . 'LEFT JOIN ' . TB_PREF . 'debtors_master dm ON dm.debtor_no=dt.debtor_no '
+            . 'LEFT JOIN ' . TB_PREF . 'cust_branch cb ON cb.branch_code=dt.branch_code AND cb.debtor_no=dt.debtor_no '
+            . 'WHERE dt.type=' . \db_escape($type) . ' AND dt.trans_no=' . \db_escape($id),
+            'could not get debtor transaction'
+        ));
+        if ($header === []) {
+            return [];
+        }
+        $header['lines'] = $this->queryRows(
+            'SELECT * FROM ' . TB_PREF . 'debtor_trans_details '
+            . 'WHERE debtor_trans_type=' . \db_escape($type) . ' AND debtor_trans_no=' . \db_escape($id) . ' ORDER BY id',
+            'could not get debtor transaction lines'
+        );
+        return $header;
+    }
+
     /** @return list<array<string,mixed>> */
     public function customerPayments(?int $customerId = null): array
     {

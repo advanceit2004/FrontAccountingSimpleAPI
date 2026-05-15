@@ -146,6 +146,27 @@ final class CatalogController
         return $this->list($request, $response, $this->service->purchaseOrders(isset($q['supplierId']) ? (int) $q['supplierId'] : null));
     }
 
+
+    public function salesDelivery(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->single($response, $this->service->salesDelivery((int) $args['id']), 'Sales delivery was not found');
+    }
+
+    public function salesInvoice(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->single($response, $this->service->salesInvoice((int) $args['id']), 'Sales invoice was not found');
+    }
+
+    public function purchaseReceipt(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->single($response, $this->service->purchaseReceipt((int) $args['id']), 'Purchase receipt was not found');
+    }
+
+    public function supplierInvoice(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->single($response, $this->service->supplierInvoice((int) $args['id']), 'Supplier invoice was not found');
+    }
+
     public function customerPayments(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $q = $request->getQueryParams();
