@@ -21,10 +21,14 @@ final class TransactionService
             throw new InvalidArgumentException('lines must be a non-empty array');
         }
 
+        $date = \sql2date($d['date']);
+        $documentDate = $d['documentDate'] ? \sql2date($d['documentDate']) : $date;
+        $eventDate = $d['eventDate'] ? \sql2date($d['eventDate']) : $date;
+
         $cart = new \items_cart(ST_JOURNAL);
-        $cart->tran_date = $d['date'];
-        $cart->doc_date = $d['documentDate'] ?: $d['date'];
-        $cart->event_date = $d['eventDate'] ?: $d['date'];
+        $cart->tran_date = $date;
+        $cart->doc_date = $documentDate;
+        $cart->event_date = $eventDate;
         $cart->source_ref = $d['sourceRef'];
         $cart->memo_ = $d['memo'];
         $cart->currency = $d['currency'] ?: \get_company_pref('curr_default');
@@ -40,6 +44,9 @@ final class TransactionService
             $amount = (float) ($line['amount'] ?? 0);
             if ($account === '' || $amount == 0.0) {
                 throw new InvalidArgumentException('each journal line requires account and non-zero amount');
+            }
+            if (!\get_gl_account($account)) {
+                throw new InvalidArgumentException('unknown GL account: ' . $account);
             }
             $total += $amount;
             $cart->add_gl_item($account, (int) ($line['dimension1'] ?? 0), (int) ($line['dimension2'] ?? 0), $amount, (string) ($line['memo'] ?? ''));
@@ -104,7 +111,7 @@ final class TransactionService
             $cart->add_to_cart($lineNo++, $stockId, $quantity, (float) ($line['standardCost'] ?? 0), $line['description'] ?? null);
         }
 
-        $id = \add_stock_adjustment($cart->line_items, $d['location'], $d['date'], $d['reference'], $d['memo']);
+        $id = \add_stock_adjustment($cart->line_items, $d['location'], \sql2date($d['date']), $d['reference'], $d['memo']);
         return ['id' => $id, 'reference' => $d['reference']];
     }
 }

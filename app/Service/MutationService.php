@@ -22,8 +22,24 @@ final class MutationService
     public function updateItemCategory(int $id, array $d): array
     {
         Kernel::boot();
-        require_once Kernel::faRoot() . '/inventory/includes/db/items_category_db.inc';
-        \update_item_category($id, $d['description'], $d['taxTypeId'], $d['salesAccount'], $d['cogsAccount'], $d['inventoryAccount'], $d['adjustmentAccount'], $d['wipAccount'], $d['units'], $d['mbFlag'], $d['dimension1'], $d['dimension2'], $d['noSale'], $d['noPurchase']);
+        \db_query(
+            'UPDATE ' . TB_PREF . 'stock_category SET '
+            . 'description=' . \db_escape($d['description']) . ','
+            . 'dflt_tax_type=' . \db_escape($d['taxTypeId']) . ','
+            . 'dflt_units=' . \db_escape($d['units']) . ','
+            . 'dflt_mb_flag=' . \db_escape($d['mbFlag']) . ','
+            . 'dflt_sales_act=' . \db_escape($d['salesAccount']) . ','
+            . 'dflt_cogs_act=' . \db_escape($d['cogsAccount']) . ','
+            . 'dflt_inventory_act=' . \db_escape($d['inventoryAccount']) . ','
+            . 'dflt_adjustment_act=' . \db_escape($d['adjustmentAccount']) . ','
+            . 'dflt_wip_act=' . \db_escape($d['wipAccount']) . ','
+            . 'dflt_dim1=' . \db_escape($d['dimension1']) . ','
+            . 'dflt_dim2=' . \db_escape($d['dimension2']) . ','
+            . 'dflt_no_sale=' . \db_escape($d['noSale']) . ','
+            . 'dflt_no_purchase=' . \db_escape($d['noPurchase'])
+            . ' WHERE category_id=' . \db_escape($id),
+            'an item category could not be updated'
+        );
         return ['id' => $id];
     }
 
@@ -51,7 +67,8 @@ final class MutationService
         Kernel::boot();
         require_once Kernel::faRoot() . '/sales/includes/db/customers_db.inc';
         \add_customer($d['name'], $d['reference'], $d['address'], $d['taxId'], $d['currency'], $d['dimension1'], $d['dimension2'], $d['creditStatus'], $d['paymentTerms'], $d['discount'], $d['paymentDiscount'], $d['creditLimit'], $d['salesType'], $d['notes']);
-        return ['id' => \db_insert_id()];
+        $customer = \get_customer_by_ref($d['reference']);
+        return ['id' => $customer['debtor_no'] ?? null, 'reference' => $d['reference']];
     }
 
     /** @param array<string,mixed> $d */
