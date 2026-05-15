@@ -43,6 +43,58 @@ final class TransactionController
 
 
 
+
+    public function createSalesOrder(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $b = RequestData::body($request);
+            $data = [
+                'customerId' => RequestData::int($b, 'customerId'),
+                'branchId' => RequestData::int($b, 'branchId', 0),
+                'date' => RequestData::string($b, 'date'),
+                'deliveryDate' => RequestData::string($b, 'deliveryDate', ''),
+                'reference' => RequestData::string($b, 'reference', ''),
+                'customerReference' => RequestData::string($b, 'customerReference', ''),
+                'memo' => RequestData::string($b, 'memo', ''),
+                'location' => RequestData::string($b, 'location', ''),
+                'shipVia' => RequestData::int($b, 'shipVia', 0),
+                'deliverTo' => RequestData::string($b, 'deliverTo', ''),
+                'deliveryAddress' => RequestData::string($b, 'deliveryAddress', ''),
+                'phone' => RequestData::string($b, 'phone', ''),
+                'freightCost' => RequestData::float($b, 'freightCost', 0),
+                'dimension1' => RequestData::int($b, 'dimension1', 0),
+                'dimension2' => RequestData::int($b, 'dimension2', 0),
+                'lines' => $b['lines'] ?? [],
+            ];
+            return JsonResponse::success($response, $this->service->createSalesOrder($data), [], 201);
+        } catch (InvalidArgumentException $e) {
+            return JsonResponse::error($response, 'VALIDATION_ERROR', $e->getMessage(), 422);
+        }
+    }
+
+    public function createPurchaseOrder(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $b = RequestData::body($request);
+            $data = [
+                'supplierId' => RequestData::int($b, 'supplierId'),
+                'date' => RequestData::string($b, 'date'),
+                'deliveryDate' => RequestData::string($b, 'deliveryDate', ''),
+                'reference' => RequestData::string($b, 'reference', ''),
+                'supplierReference' => RequestData::string($b, 'supplierReference', ''),
+                'memo' => RequestData::string($b, 'memo', ''),
+                'location' => RequestData::string($b, 'location', 'DEF'),
+                'deliveryAddress' => RequestData::string($b, 'deliveryAddress', ''),
+                'dimension1' => RequestData::int($b, 'dimension1', 0),
+                'dimension2' => RequestData::int($b, 'dimension2', 0),
+                'lines' => $b['lines'] ?? [],
+            ];
+            return JsonResponse::success($response, $this->service->createPurchaseOrder($data), [], 201);
+        } catch (InvalidArgumentException $e) {
+            return JsonResponse::error($response, 'VALIDATION_ERROR', $e->getMessage(), 422);
+        }
+    }
+
     public function createCustomerPayment(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         try {

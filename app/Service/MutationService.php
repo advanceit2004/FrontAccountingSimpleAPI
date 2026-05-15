@@ -66,9 +66,32 @@ final class MutationService
     {
         Kernel::boot();
         require_once Kernel::faRoot() . '/sales/includes/db/customers_db.inc';
+        require_once Kernel::faRoot() . '/sales/includes/db/branches_db.inc';
         \add_customer($d['name'], $d['reference'], $d['address'], $d['taxId'], $d['currency'], $d['dimension1'], $d['dimension2'], $d['creditStatus'], $d['paymentTerms'], $d['discount'], $d['paymentDiscount'], $d['creditLimit'], $d['salesType'], $d['notes']);
         $customer = \get_customer_by_ref($d['reference']);
-        return ['id' => $customer['debtor_no'] ?? null, 'reference' => $d['reference']];
+        $id = $customer['debtor_no'] ?? null;
+        if ($id && $d['createDefaultBranch']) {
+            \add_branch(
+                $id,
+                $d['branchName'] ?: $d['name'],
+                $d['branchReference'] ?: $d['reference'],
+                $d['branchAddress'] ?: $d['address'],
+                $d['salesman'],
+                $d['area'],
+                $d['taxGroupId'],
+                $d['branchSalesAccount'],
+                $d['branchSalesDiscountAccount'],
+                $d['branchReceivablesAccount'],
+                $d['branchPaymentDiscountAccount'],
+                $d['defaultLocation'],
+                $d['branchPostAddress'] ?: $d['address'],
+                0,
+                $d['defaultShipVia'],
+                $d['notes'],
+                null
+            );
+        }
+        return ['id' => $id, 'reference' => $d['reference']];
     }
 
     /** @param array<string,mixed> $d */

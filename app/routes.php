@@ -40,8 +40,10 @@ return function (App $app): void {
         $group->get('/locations', [CatalogController::class, 'locations'])->add(new BearerTokenMiddleware(['SA_INVENTORYLOCATION', 'SA_ITEMSSTATVIEW', 'SA_ITEMSTRANSVIEW']));
 
         $group->get('/sales/orders', [CatalogController::class, 'salesOrders'])->add(new BearerTokenMiddleware(['SA_SALESTRANSVIEW', 'SA_SALESORDER', 'SA_OPEN']));
+        $group->post('/sales/orders', [TransactionController::class, 'createSalesOrder'])->add(new BearerTokenMiddleware(['SA_SALESORDER']));
         $group->get('/sales/invoices', [CatalogController::class, 'salesInvoices'])->add(new BearerTokenMiddleware(['SA_SALESTRANSVIEW', 'SA_SALESINVOICE', 'SA_OPEN']));
         $group->get('/purchase/orders', [CatalogController::class, 'purchaseOrders'])->add(new BearerTokenMiddleware(['SA_SUPPTRANSVIEW', 'SA_PURCHASEORDER', 'SA_OPEN']));
+        $group->post('/purchase/orders', [TransactionController::class, 'createPurchaseOrder'])->add(new BearerTokenMiddleware(['SA_PURCHASEORDER']));
         $group->get('/customer-payments', [CatalogController::class, 'customerPayments'])->add(new BearerTokenMiddleware(['SA_SALESTRANSVIEW', 'SA_SALESPAYMNT', 'SA_OPEN']));
         $group->get('/supplier-payments', [CatalogController::class, 'supplierPayments'])->add(new BearerTokenMiddleware(['SA_SUPPTRANSVIEW', 'SA_SUPPLIERPAYMNT', 'SA_OPEN']));
 

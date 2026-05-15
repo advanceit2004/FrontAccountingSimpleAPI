@@ -158,6 +158,20 @@ final class MutationController
             'creditLimit' => RequestData::float($b, 'creditLimit', 0),
             'salesType' => RequestData::int($b, 'salesType', 1),
             'notes' => RequestData::string($b, 'notes', ''),
+            'createDefaultBranch' => filter_var($b['createDefaultBranch'] ?? true, FILTER_VALIDATE_BOOL),
+            'branchName' => RequestData::string($b, 'branchName', ''),
+            'branchReference' => RequestData::string($b, 'branchReference', ''),
+            'branchAddress' => RequestData::string($b, 'branchAddress', ''),
+            'branchPostAddress' => RequestData::string($b, 'branchPostAddress', ''),
+            'salesman' => RequestData::int($b, 'salesman', 1),
+            'area' => RequestData::int($b, 'area', 1),
+            'taxGroupId' => RequestData::int($b, 'taxGroupId', 1),
+            'branchSalesAccount' => RequestData::string($b, 'branchSalesAccount', '4050'),
+            'branchSalesDiscountAccount' => RequestData::string($b, 'branchSalesDiscountAccount', '4060'),
+            'branchReceivablesAccount' => RequestData::string($b, 'branchReceivablesAccount', '1800'),
+            'branchPaymentDiscountAccount' => RequestData::string($b, 'branchPaymentDiscountAccount', '5060'),
+            'defaultLocation' => RequestData::string($b, 'defaultLocation', 'MEL'),
+            'defaultShipVia' => RequestData::int($b, 'defaultShipVia', 1),
         ];
     }
 

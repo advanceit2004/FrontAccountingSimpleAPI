@@ -170,6 +170,29 @@ BAD_CODE=$(curl -sS -o "$TMP_DIR/bad_journal.json" -w '%{http_code}' -X POST \
   -d "$BAD_JOURNAL_BODY" "$BASE_URL/journal-entries")
 [[ "$BAD_CODE" == 422 ]] || { cat "$TMP_DIR/bad_journal.json" >&2; fail "bad journal expected 422, got $BAD_CODE"; }
 
+
+info "create sales order"
+SALES_ORDER_REF="APISO$TS"
+SALES_ORDER_BODY=$(cat <<JSON
+{"customerId":$CUSTOMER_ID,"date":"2026-05-15","deliveryDate":"2026-05-15","reference":"$SALES_ORDER_REF","customerReference":"API smoke SO $TS","location":"MEL","lines":[{"stockId":"$STOCK_ID","quantity":1,"price":5,"discount":0,"description":"API Smoke Item $TS"}]}
+JSON
+)
+request POST sales/orders "$SALES_ORDER_BODY"
+SALES_ORDER_ID=$(json_get "$TMP_DIR/response.json" data.id)
+[[ "$SALES_ORDER_ID" =~ ^[0-9]+$ ]] || fail "invalid sales order id: $SALES_ORDER_ID"
+request GET sales/orders
+
+info "create purchase order"
+PURCHASE_ORDER_REF="APIPO$TS"
+PURCHASE_ORDER_BODY=$(cat <<JSON
+{"supplierId":$SUPPLIER_ID,"date":"2026-05-15","deliveryDate":"2026-05-15","reference":"$PURCHASE_ORDER_REF","supplierReference":"API smoke PO $TS","location":"MEL","lines":[{"stockId":"$STOCK_ID","quantity":1,"price":3,"description":"API Smoke Item $TS"}]}
+JSON
+)
+request POST purchase/orders "$PURCHASE_ORDER_BODY"
+PURCHASE_ORDER_ID=$(json_get "$TMP_DIR/response.json" data.id)
+[[ "$PURCHASE_ORDER_ID" =~ ^[0-9]+$ ]] || fail "invalid purchase order id: $PURCHASE_ORDER_ID"
+request GET purchase/orders
+
 info "create customer payment"
 CUSTOMER_PAYMENT_REF="APICP$TS"
 CUSTOMER_PAYMENT_BODY=$(cat <<JSON
@@ -189,7 +212,7 @@ request POST supplier-payments "$SUPPLIER_PAYMENT_BODY"
 info "create stock adjustment"
 STOCK_REF="APIS$TS"
 STOCK_BODY=$(cat <<JSON
-{"location":"DEF","date":"2026-05-15","reference":"$STOCK_REF","memo":"API smoke stock $TS","lines":[{"stockId":"$STOCK_ID","quantity":1,"standardCost":0,"description":"API Smoke Item $TS"}]}
+{"location":"MEL","date":"2026-05-15","reference":"$STOCK_REF","memo":"API smoke stock $TS","lines":[{"stockId":"$STOCK_ID","quantity":1,"standardCost":0,"description":"API Smoke Item $TS"}]}
 JSON
 )
 request POST stock-adjustments "$STOCK_BODY"

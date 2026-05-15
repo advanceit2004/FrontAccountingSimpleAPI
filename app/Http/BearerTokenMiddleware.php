@@ -37,6 +37,16 @@ final class BearerTokenMiddleware implements MiddlewareInterface
         Kernel::selectCompany((int) $claims['company']);
 
         $user = ApiUser::fromClaims($claims);
+        $faUser = $_SESSION['wa_current_user'] ?? null;
+        if (is_object($faUser)) {
+            $faUser->company = $user->company;
+            $faUser->loginname = $user->username;
+            $faUser->username = $user->username;
+            $faUser->user = $user->userId ?? 0;
+            $faUser->role_set = $user->areas;
+            $faUser->logged = true;
+            $faUser->last_act = time();
+        }
         if (!Authorization::allows($user, $this->requiredAreas)) {
             return JsonResponse::error(new Response(), 'FORBIDDEN', 'The authenticated user is not allowed to access this resource', 403);
         }
