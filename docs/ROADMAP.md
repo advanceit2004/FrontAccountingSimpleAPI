@@ -5,8 +5,8 @@ This roadmap tracks the next stages for the new Slim 4 / PHP 8.4 JSON API for Fr
 ## Current validated baseline
 
 - Branch: `new-slim4-api`
-- Latest validated image: `advanceit2004/frontaccounting:2.4.20-php8.4-api-slim4.6`
-- Latest completed implementation commit: `e540132 Add posted document detail endpoints`
+- Latest validated image: `advanceit2004/frontaccounting:2.4.20-php8.4-api-slim4.7`
+- Latest completed implementation commit: `cbbc9b5 Add setup dependency APIs and validation`
 - Runtime target: FrontAccounting `2.4.20`, PHP `8.4.21`, Slim 4
 - API base path: `/modules/api/public/index.php/v1`
 
@@ -57,6 +57,9 @@ The API currently covers these validated workflows:
 - [x] Sales order → sales delivery → sales invoice
 - [x] Purchase order → purchase receipt → supplier invoice
 - [x] Posted document detail reads for sales deliveries, sales invoices, purchase receipts, and supplier invoices
+- [x] Customer branch management APIs
+- [x] Setup reference endpoints for sales areas, salesmen, shippers, payment terms, item units, item tax types, dimensions, and fiscal years
+- [x] Setup validation for customer branches, suppliers, item categories, and items
 
 The smoke test suite validates the core read/write workflows against both the running FrontAccounting container and fresh containers created from rebuilt images.
 
@@ -70,7 +73,7 @@ GitHub parent issue: [#1 Roadmap: Stage 8 — production readiness and future AP
 
 GitHub issue: [#3 Stage 8: Production deployment and security checklist](https://github.com/advanceit2004/FrontAccountingSimpleAPI/issues/3)
 
-- [ ] Decide production image tag to deploy, currently recommended: `2.4.20-php8.4-api-slim4.6`
+- [ ] Decide production image tag to deploy, currently recommended: `2.4.20-php8.4-api-slim4.7`
 - [ ] Set `FA_API_JWT_SECRET` to a long random production secret
 - [ ] Set `FA_API_TOKEN_TTL`, for example `3600`
 - [ ] Review API user permissions and create least-privilege API roles
@@ -138,6 +141,29 @@ GitHub issue: [#7 Stage 8: Add release and versioning process](https://github.co
 - [ ] Create a release checklist
 - [ ] Include validated FrontAccounting/PHP/Slim versions in each release
 - [ ] Link releases to smoke-test results
+
+### 8.7 Setup/dependency visibility and validation
+
+Completed in commit `cbbc9b5 Add setup dependency APIs and validation`.
+
+- [x] `GET /v1/customers/{id}/branches`
+- [x] `GET /v1/customers/{id}/branches/{branchId}`
+- [x] `POST /v1/customers/{id}/branches`
+- [x] `PUT /v1/customers/{id}/branches/{branchId}`
+- [x] `PATCH /v1/customers/{id}/branches/{branchId}/inactive`
+- [x] `GET /v1/sales/areas`
+- [x] `GET /v1/sales/salesmen`
+- [x] `GET /v1/shippers`
+- [x] `GET /v1/payment-terms`
+- [x] `GET /v1/item-units`
+- [x] `GET /v1/item-tax-types`
+- [x] `GET /v1/dimensions`
+- [x] `GET /v1/fiscal-years`
+- [x] Validate customer branch setup dependencies before writes
+- [x] Validate supplier setup dependencies before writes
+- [x] Validate item/category setup dependencies before writes
+- [x] Resolve default customer branch for customer payments when omitted
+- [x] Add smoke-test coverage for setup references and customer branch workflows
 
 ---
 
