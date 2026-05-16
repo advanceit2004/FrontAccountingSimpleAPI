@@ -29,44 +29,392 @@ components:
           properties:
             code: { type: string }
             message: { type: string }
+    LoginRequest:
+      type: object
+      required: [company, username, password]
+      properties:
+        company: { type: integer, example: 0 }
+        username: { type: string, example: api_test }
+        password: { type: string, format: password }
+    LoginResponse:
+      type: object
+      properties:
+        accessToken: { type: string }
+        tokenType: { type: string, example: Bearer }
+        expiresIn: { type: integer, example: 3600 }
+    InactivePatch:
+      type: object
+      required: [inactive]
+      properties:
+        inactive: { type: boolean }
+    JournalEntryCreate:
+      type: object
+      required: [date, lines]
+      properties:
+        date: { type: string, format: date }
+        documentDate: { type: string, format: date }
+        eventDate: { type: string, format: date }
+        sourceRef: { type: string }
+        reference: { type: string }
+        memo: { type: string }
+        currency: { type: string, example: AUD }
+        rate: { type: number, default: 1 }
+        lines:
+          type: array
+          items:
+            type: object
+            required: [account, amount]
+            properties:
+              account: { type: string, example: '1200' }
+              amount: { type: number, example: 10 }
+              memo: { type: string }
+              dimension1: { type: integer, default: 0 }
+              dimension2: { type: integer, default: 0 }
+    StockAdjustmentCreate:
+      type: object
+      required: [location, date, reference, lines]
+      properties:
+        location: { type: string, example: MEL }
+        date: { type: string, format: date }
+        reference: { type: string }
+        memo: { type: string }
+        lines:
+          type: array
+          items:
+            type: object
+            required: [stockId, quantity]
+            properties:
+              stockId: { type: string }
+              quantity: { type: number }
+              standardCost: { type: number }
+              description: { type: string }
+    SalesOrderCreate:
+      type: object
+      required: [customerId, date, lines]
+      properties:
+        customerId: { type: integer }
+        branchId: { type: integer, default: 0 }
+        date: { type: string, format: date }
+        deliveryDate: { type: string, format: date }
+        reference: { type: string }
+        customerReference: { type: string }
+        memo: { type: string }
+        location: { type: string, example: MEL }
+        shipVia: { type: integer }
+        deliverTo: { type: string }
+        deliveryAddress: { type: string }
+        phone: { type: string }
+        freightCost: { type: number }
+        dimension1: { type: integer }
+        dimension2: { type: integer }
+        lines:
+          type: array
+          items:
+            type: object
+            required: [stockId, quantity, price]
+            properties:
+              stockId: { type: string }
+              quantity: { type: number }
+              price: { type: number }
+              discount: { type: number }
+              description: { type: string }
+    SalesDeliveryCreate:
+      type: object
+      required: [orderId, date, lines]
+      properties:
+        orderId: { type: integer }
+        date: { type: string, format: date }
+        deliveryDate: { type: string, format: date }
+        reference: { type: string }
+        memo: { type: string }
+        location: { type: string, example: MEL }
+        freightCost: { type: number }
+        backOrder: { type: boolean, default: true }
+        lines:
+          type: array
+          items:
+            type: object
+            required: [stockId, quantity]
+            properties:
+              stockId: { type: string }
+              quantity: { type: number }
+    SalesInvoiceCreate:
+      type: object
+      required: [deliveryId, date, lines]
+      properties:
+        deliveryId: { type: integer }
+        date: { type: string, format: date }
+        dueDate: { type: string, format: date }
+        reference: { type: string }
+        memo: { type: string }
+        freightCost: { type: number }
+        lines:
+          type: array
+          items:
+            type: object
+            required: [stockId, quantity]
+            properties:
+              stockId: { type: string }
+              quantity: { type: number }
+    PurchaseOrderCreate:
+      type: object
+      required: [supplierId, date, lines]
+      properties:
+        supplierId: { type: integer }
+        date: { type: string, format: date }
+        deliveryDate: { type: string, format: date }
+        reference: { type: string }
+        supplierReference: { type: string }
+        memo: { type: string }
+        location: { type: string, example: MEL }
+        deliveryAddress: { type: string }
+        dimension1: { type: integer }
+        dimension2: { type: integer }
+        lines:
+          type: array
+          items:
+            type: object
+            required: [stockId, quantity, price]
+            properties:
+              stockId: { type: string }
+              quantity: { type: number }
+              price: { type: number }
+              description: { type: string }
+    PurchaseReceiptCreate:
+      type: object
+      required: [orderId, date, lines]
+      properties:
+        orderId: { type: integer }
+        date: { type: string, format: date }
+        reference: { type: string }
+        memo: { type: string }
+        location: { type: string, example: MEL }
+        lines:
+          type: array
+          items:
+            type: object
+            required: [stockId, quantity]
+            properties:
+              stockId: { type: string }
+              quantity: { type: number }
+    SupplierInvoiceCreate:
+      type: object
+      required: [receiptId, date, supplierReference, lines]
+      properties:
+        receiptId: { type: integer }
+        date: { type: string, format: date }
+        dueDate: { type: string, format: date }
+        reference: { type: string }
+        supplierReference: { type: string }
+        memo: { type: string }
+        exchangeRate: { type: number, default: 1 }
+        dimension1: { type: integer }
+        dimension2: { type: integer }
+        lines:
+          type: array
+          items:
+            type: object
+            required: [stockId, quantity, price]
+            properties:
+              stockId: { type: string }
+              quantity: { type: number }
+              price: { type: number }
+    PaymentCreate:
+      type: object
+      required: [bankAccount, date, reference, amount]
+      properties:
+        customerId: { type: integer, description: Required for customer payments }
+        supplierId: { type: integer, description: Required for supplier payments }
+        branchId: { type: integer, description: Customer payments only; 0 resolves default branch }
+        bankAccount: { type: integer }
+        date: { type: string, format: date }
+        reference: { type: string }
+        amount: { type: number }
+        discount: { type: number }
+        memo: { type: string }
+        charge: { type: number, description: Customer payments only }
+        bankCharge: { type: number, description: Supplier payments only }
+        bankAmount: { type: number }
+        dimension1: { type: integer }
+        dimension2: { type: integer }
+    AllocationCreate:
+      type: object
+      required: [targetId, amount]
+      properties:
+        targetType: { type: integer, description: Defaults to sales invoice or supplier invoice depending on endpoint }
+        targetId: { type: integer }
+        amount: { type: number }
+        date: { type: string, format: date }
+    VoidRequest:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        memo: { type: string, example: Voided via API }
+    CustomerCreditNoteCreate:
+      type: object
+      required: [invoiceId, date]
+      properties:
+        invoiceId: { type: integer }
+        date: { type: string, format: date }
+        reference: { type: string }
+        memo: { type: string }
+        location: { type: string, example: MEL }
+        shipVia: { type: integer }
+        freightCost: { type: number }
+        writeOffAccount: { type: string, description: Optional GL account for write-off instead of stock return }
+        lines:
+          type: array
+          description: Empty array credits remaining quantities on all invoice lines.
+          items:
+            type: object
+            properties:
+              lineId: { type: integer }
+              stockId: { type: string }
+              quantity: { type: number }
+              description: { type: string }
+    SupplierCreditNoteCreate:
+      type: object
+      required: [invoiceId, date, supplierReference]
+      properties:
+        invoiceId: { type: integer }
+        date: { type: string, format: date }
+        dueDate: { type: string, format: date }
+        reference: { type: string }
+        supplierReference: { type: string }
+        memo: { type: string }
+        exchangeRate: { type: number, default: 1 }
+        dimension1: { type: integer }
+        dimension2: { type: integer }
+        lines:
+          type: array
+          items:
+            type: object
+            properties:
+              grnItemId: { type: integer }
+              stockId: { type: string }
+              quantity: { type: number }
+              price: { type: number }
+              account: { type: string, description: Alternative GL-only credit line }
+              amount: { type: number, description: Positive amount for GL-only credit line }
+              memo: { type: string }
+  responses:
+    OK:
+      description: OK
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiSuccess' }
+    Created:
+      description: Created
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiSuccess' }
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+    StockId:
+      name: stockId
+      in: path
+      required: true
+      schema: { type: string }
+    Code:
+      name: code
+      in: path
+      required: true
+      schema: { type: string }
 paths:
   /health:
     get:
       security: []
       summary: Health check
-      responses: { '200': { description: OK } }
+      responses:
+        '200': { $ref: '#/components/responses/OK' }
   /auth/login:
     post:
       security: []
       summary: Login with FrontAccounting credentials
-      responses: { '200': { description: Bearer token } }
-  /companies: { get: { summary: List companies, responses: { '200': { description: OK } } } }
-  /items/categories: { get: { summary: List item categories, responses: { '200': { description: OK } } }, post: { summary: Create item category, responses: { '201': { description: Created } } } }
-  /items/categories/{id}: { get: { summary: Get item category, responses: { '200': { description: OK }, '404': { description: Not found } } }, put: { summary: Update item category, responses: { '200': { description: OK } } } }
-  /items/categories/{id}/inactive: { patch: { summary: Set item category inactive flag, responses: { '200': { description: OK } } } }
-  /items: { get: { summary: List items, responses: { '200': { description: OK } } }, post: { summary: Create item, responses: { '201': { description: Created } } } }
-  /items/{stockId}: { get: { summary: Get item, responses: { '200': { description: OK }, '404': { description: Not found } } }, put: { summary: Update item, responses: { '200': { description: OK } } } }
-  /items/{stockId}/inactive: { patch: { summary: Set item inactive flag, responses: { '200': { description: OK } } } }
-  /customers: { get: { summary: List customers, responses: { '200': { description: OK } } }, post: { summary: Create customer, responses: { '201': { description: Created } } } }
-  /customers/{id}: { get: { summary: Get customer, responses: { '200': { description: OK }, '404': { description: Not found } } }, put: { summary: Update customer, responses: { '200': { description: OK } } } }
-  /customers/{id}/inactive: { patch: { summary: Set customer inactive flag, responses: { '200': { description: OK } } } }
-  /suppliers: { get: { summary: List suppliers, responses: { '200': { description: OK } } }, post: { summary: Create supplier, responses: { '201': { description: Created } } } }
-  /suppliers/{id}: { get: { summary: Get supplier, responses: { '200': { description: OK }, '404': { description: Not found } } }, put: { summary: Update supplier, responses: { '200': { description: OK } } } }
-  /suppliers/{id}/inactive: { patch: { summary: Set supplier inactive flag, responses: { '200': { description: OK } } } }
-  /currencies: { get: { summary: List currencies, responses: { '200': { description: OK } } } }
-  /exchange-rates: { get: { summary: List exchange rates, responses: { '200': { description: OK } } } }
-  /bank-accounts: { get: { summary: List bank accounts, responses: { '200': { description: OK } } } }
-  /bank-accounts/{id}: { get: { summary: Get bank account, responses: { '200': { description: OK }, '404': { description: Not found } } } }
-  /gl/accounts: { get: { summary: List GL accounts, responses: { '200': { description: OK } } } }
-  /gl/accounts/{code}: { get: { summary: Get GL account, responses: { '200': { description: OK }, '404': { description: Not found } } } }
-  /tax/types: { get: { summary: List tax types, responses: { '200': { description: OK } } } }
-  /tax/groups: { get: { summary: List tax groups, responses: { '200': { description: OK } } } }
-  /locations: { get: { summary: List inventory locations, responses: { '200': { description: OK } } } }
-  /journal-entries: { post: { summary: Create journal entry, responses: { '201': { description: Created } } } }
-  /journal-entries/{id}: { get: { summary: Get journal entry, responses: { '200': { description: OK }, '404': { description: Not found } } } }
-  /stock-adjustments: { post: { summary: Create stock adjustment, responses: { '201': { description: Created } } } }
-  /sales/orders: { get: { summary: List sales orders, responses: { '200': { description: OK } } } }
-  /sales/invoices: { get: { summary: List sales invoices, responses: { '200': { description: OK } } } }
-  /purchase/orders: { get: { summary: List purchase orders, responses: { '200': { description: OK } } } }
-  /customer-payments: { get: { summary: List customer payments, responses: { '200': { description: OK } } }, post: { summary: Create customer payment, responses: { '201': { description: Created } } } }
-  /supplier-payments: { get: { summary: List supplier payments, responses: { '200': { description: OK } } }, post: { summary: Create supplier payment, responses: { '201': { description: Created } } } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Bearer token
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiSuccess' }
+  /companies: { get: { summary: List companies, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /items/categories: { get: { summary: List item categories, responses: { '200': { $ref: '#/components/responses/OK' } } }, post: { summary: Create item category, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /items/categories/{id}: { get: { summary: Get item category, parameters: [ { $ref: '#/components/parameters/Id' } ], responses: { '200': { $ref: '#/components/responses/OK' }, '404': { $ref: '#/components/responses/NotFound' } } }, put: { summary: Update item category, parameters: [ { $ref: '#/components/parameters/Id' } ], responses: { '200': { $ref: '#/components/responses/OK' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /items/categories/{id}/inactive: { patch: { summary: Set item category inactive flag, parameters: [ { $ref: '#/components/parameters/Id' } ], requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/InactivePatch' } } } }, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /items: { get: { summary: List items, parameters: [ { name: page, in: query, schema: { type: integer, default: 1 } }, { name: perPage, in: query, schema: { type: integer, default: 50 } } ], responses: { '200': { $ref: '#/components/responses/OK' } } }, post: { summary: Create item, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /items/{stockId}: { get: { summary: Get item, parameters: [ { $ref: '#/components/parameters/StockId' } ], responses: { '200': { $ref: '#/components/responses/OK' }, '404': { $ref: '#/components/responses/NotFound' } } }, put: { summary: Update item, parameters: [ { $ref: '#/components/parameters/StockId' } ], responses: { '200': { $ref: '#/components/responses/OK' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /items/{stockId}/inactive: { patch: { summary: Set item inactive flag, parameters: [ { $ref: '#/components/parameters/StockId' } ], requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/InactivePatch' } } } }, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /customers: { get: { summary: List customers, responses: { '200': { $ref: '#/components/responses/OK' } } }, post: { summary: Create customer, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /customers/{id}: { get: { summary: Get customer, parameters: [ { $ref: '#/components/parameters/Id' } ], responses: { '200': { $ref: '#/components/responses/OK' }, '404': { $ref: '#/components/responses/NotFound' } } }, put: { summary: Update customer, parameters: [ { $ref: '#/components/parameters/Id' } ], responses: { '200': { $ref: '#/components/responses/OK' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /customers/{id}/inactive: { patch: { summary: Set customer inactive flag, parameters: [ { $ref: '#/components/parameters/Id' } ], requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/InactivePatch' } } } }, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /customers/{id}/branches: { get: { summary: List customer branches, parameters: [ { $ref: '#/components/parameters/Id' } ], responses: { '200': { $ref: '#/components/responses/OK' } } }, post: { summary: Create customer branch, parameters: [ { $ref: '#/components/parameters/Id' } ], responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /customers/{id}/branches/{branchId}: { get: { summary: Get customer branch, parameters: [ { $ref: '#/components/parameters/Id' }, { name: branchId, in: path, required: true, schema: { type: integer } } ], responses: { '200': { $ref: '#/components/responses/OK' }, '404': { $ref: '#/components/responses/NotFound' } } }, put: { summary: Update customer branch, parameters: [ { $ref: '#/components/parameters/Id' }, { name: branchId, in: path, required: true, schema: { type: integer } } ], responses: { '200': { $ref: '#/components/responses/OK' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /customers/{id}/branches/{branchId}/inactive: { patch: { summary: Set customer branch inactive flag, parameters: [ { $ref: '#/components/parameters/Id' }, { name: branchId, in: path, required: true, schema: { type: integer } } ], requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/InactivePatch' } } } }, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /suppliers: { get: { summary: List suppliers, responses: { '200': { $ref: '#/components/responses/OK' } } }, post: { summary: Create supplier, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /suppliers/{id}: { get: { summary: Get supplier, parameters: [ { $ref: '#/components/parameters/Id' } ], responses: { '200': { $ref: '#/components/responses/OK' }, '404': { $ref: '#/components/responses/NotFound' } } }, put: { summary: Update supplier, parameters: [ { $ref: '#/components/parameters/Id' } ], responses: { '200': { $ref: '#/components/responses/OK' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /suppliers/{id}/inactive: { patch: { summary: Set supplier inactive flag, parameters: [ { $ref: '#/components/parameters/Id' } ], requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/InactivePatch' } } } }, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /currencies: { get: { summary: List currencies, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /exchange-rates: { get: { summary: List exchange rates, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /bank-accounts: { get: { summary: List bank accounts, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /bank-accounts/{id}: { get: { summary: Get bank account, parameters: [ { $ref: '#/components/parameters/Id' } ], responses: { '200': { $ref: '#/components/responses/OK' }, '404': { $ref: '#/components/responses/NotFound' } } } }
+  /gl/accounts: { get: { summary: List GL accounts, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /gl/accounts/{code}: { get: { summary: Get GL account, parameters: [ { $ref: '#/components/parameters/Code' } ], responses: { '200': { $ref: '#/components/responses/OK' }, '404': { $ref: '#/components/responses/NotFound' } } } }
+  /tax/types: { get: { summary: List tax types, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /tax/groups: { get: { summary: List tax groups, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /locations: { get: { summary: List inventory locations, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /sales/areas: { get: { summary: List sales areas, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /sales/salesmen: { get: { summary: List salespeople, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /shippers: { get: { summary: List shippers, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /payment-terms: { get: { summary: List payment terms, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /item-units: { get: { summary: List item units, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /item-tax-types: { get: { summary: List item tax types, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /dimensions: { get: { summary: List dimensions, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /fiscal-years: { get: { summary: List fiscal years, responses: { '200': { $ref: '#/components/responses/OK' } } } }
+  /journal-entries: { post: { summary: Create journal entry, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/JournalEntryCreate' } } } }, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /journal-entries/{id}: { get: { summary: Get journal entry, parameters: [ { $ref: '#/components/parameters/Id' } ], responses: { '200': { $ref: '#/components/responses/OK' }, '404': { $ref: '#/components/responses/NotFound' } } } }
+  /journal-entries/{id}/void: { post: { summary: Void journal entry, parameters: [ { $ref: '#/components/parameters/Id' } ], requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/VoidRequest' } } } }, responses: { '200': { $ref: '#/components/responses/OK' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /stock-adjustments: { post: { summary: Create stock adjustment, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/StockAdjustmentCreate' } } } }, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /stock-adjustments/{id}/void: { post: { summary: Void stock adjustment, parameters: [ { $ref: '#/components/parameters/Id' } ], requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/VoidRequest' } } } }, responses: { '200': { $ref: '#/components/responses/OK' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /sales/orders: { get: { summary: List sales orders, responses: { '200': { $ref: '#/components/responses/OK' } } }, post: { summary: Create sales order, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/SalesOrderCreate' } } } }, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /sales/deliveries: { post: { summary: Create sales delivery from order, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/SalesDeliveryCreate' } } } }, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /sales/deliveries/{id}: { get: { summary: Get sales delivery details, parameters: [ { $ref: '#/components/parameters/Id' } ], responses: { '200': { $ref: '#/components/responses/OK' }, '404': { $ref: '#/components/responses/NotFound' } } } }
+  /sales/deliveries/{id}/void: { post: { summary: Void sales delivery, parameters: [ { $ref: '#/components/parameters/Id' } ], requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/VoidRequest' } } } }, responses: { '200': { $ref: '#/components/responses/OK' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /sales/invoices: { get: { summary: List sales invoices, responses: { '200': { $ref: '#/components/responses/OK' } } }, post: { summary: Create sales invoice from delivery, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/SalesInvoiceCreate' } } } }, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /sales/invoices/{id}: { get: { summary: Get sales invoice details, parameters: [ { $ref: '#/components/parameters/Id' } ], responses: { '200': { $ref: '#/components/responses/OK' }, '404': { $ref: '#/components/responses/NotFound' } } } }
+  /sales/invoices/{id}/void: { post: { summary: Void sales invoice, parameters: [ { $ref: '#/components/parameters/Id' } ], requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/VoidRequest' } } } }, responses: { '200': { $ref: '#/components/responses/OK' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /sales/credit-notes: { post: { summary: Create customer credit note against sales invoice, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/CustomerCreditNoteCreate' } } } }, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /sales/credit-notes/{id}/void: { post: { summary: Void customer credit note, parameters: [ { $ref: '#/components/parameters/Id' } ], requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/VoidRequest' } } } }, responses: { '200': { $ref: '#/components/responses/OK' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /purchase/orders: { get: { summary: List purchase orders, responses: { '200': { $ref: '#/components/responses/OK' } } }, post: { summary: Create purchase order, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/PurchaseOrderCreate' } } } }, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /purchase/receipts: { post: { summary: Create purchase receipt from order, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/PurchaseReceiptCreate' } } } }, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /purchase/receipts/{id}: { get: { summary: Get purchase receipt details, parameters: [ { $ref: '#/components/parameters/Id' } ], responses: { '200': { $ref: '#/components/responses/OK' }, '404': { $ref: '#/components/responses/NotFound' } } } }
+  /purchase/receipts/{id}/void: { post: { summary: Void purchase receipt / GRN, parameters: [ { $ref: '#/components/parameters/Id' } ], requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/VoidRequest' } } } }, responses: { '200': { $ref: '#/components/responses/OK' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /purchase/invoices: { post: { summary: Create supplier invoice from receipt, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/SupplierInvoiceCreate' } } } }, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /purchase/invoices/{id}: { get: { summary: Get supplier invoice details, parameters: [ { $ref: '#/components/parameters/Id' } ], responses: { '200': { $ref: '#/components/responses/OK' }, '404': { $ref: '#/components/responses/NotFound' } } } }
+  /purchase/invoices/{id}/void: { post: { summary: Void supplier invoice, parameters: [ { $ref: '#/components/parameters/Id' } ], requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/VoidRequest' } } } }, responses: { '200': { $ref: '#/components/responses/OK' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /purchase/credit-notes: { post: { summary: Create supplier credit note against supplier invoice, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/SupplierCreditNoteCreate' } } } }, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /purchase/credit-notes/{id}/void: { post: { summary: Void supplier credit note, parameters: [ { $ref: '#/components/parameters/Id' } ], requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/VoidRequest' } } } }, responses: { '200': { $ref: '#/components/responses/OK' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /customer-payments: { get: { summary: List customer payments, responses: { '200': { $ref: '#/components/responses/OK' } } }, post: { summary: Create customer payment, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/PaymentCreate' } } } }, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /customer-payments/{id}/void: { post: { summary: Void customer payment, parameters: [ { $ref: '#/components/parameters/Id' } ], requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/VoidRequest' } } } }, responses: { '200': { $ref: '#/components/responses/OK' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /customer-payments/{id}/allocations: { get: { summary: Get customer payment allocations, parameters: [ { $ref: '#/components/parameters/Id' } ], responses: { '200': { $ref: '#/components/responses/OK' }, '404': { $ref: '#/components/responses/NotFound' } } }, post: { summary: Allocate customer payment to invoice, parameters: [ { $ref: '#/components/parameters/Id' } ], requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/AllocationCreate' } } } }, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /supplier-payments: { get: { summary: List supplier payments, responses: { '200': { $ref: '#/components/responses/OK' } } }, post: { summary: Create supplier payment, requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/PaymentCreate' } } } }, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /supplier-payments/{id}/void: { post: { summary: Void supplier payment, parameters: [ { $ref: '#/components/parameters/Id' } ], requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/VoidRequest' } } } }, responses: { '200': { $ref: '#/components/responses/OK' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
+  /supplier-payments/{id}/allocations: { get: { summary: Get supplier payment allocations, parameters: [ { $ref: '#/components/parameters/Id' } ], responses: { '200': { $ref: '#/components/responses/OK' }, '404': { $ref: '#/components/responses/NotFound' } } }, post: { summary: Allocate supplier payment to invoice, parameters: [ { $ref: '#/components/parameters/Id' } ], requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/AllocationCreate' } } } }, responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationError' } } } }
