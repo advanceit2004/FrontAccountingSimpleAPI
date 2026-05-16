@@ -301,6 +301,61 @@ final class TransactionController
         }
     }
 
+
+    public function createCustomerCreditNote(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $b = RequestData::body($request);
+            $data = [
+                'invoiceId' => RequestData::int($b, 'invoiceId'),
+                'date' => RequestData::string($b, 'date'),
+                'reference' => RequestData::string($b, 'reference', ''),
+                'memo' => RequestData::string($b, 'memo', ''),
+                'location' => RequestData::string($b, 'location', ''),
+                'shipVia' => RequestData::int($b, 'shipVia', 0),
+                'freightCost' => array_key_exists('freightCost', $b) ? RequestData::float($b, 'freightCost') : null,
+                'writeOffAccount' => RequestData::string($b, 'writeOffAccount', ''),
+                'lines' => $b['lines'] ?? [],
+            ];
+            return JsonResponse::success($response, $this->service->createCustomerCreditNote($data), [], 201);
+        } catch (InvalidArgumentException $e) {
+            return JsonResponse::error($response, 'VALIDATION_ERROR', $e->getMessage(), 422);
+        }
+    }
+
+    public function createSupplierCreditNote(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $b = RequestData::body($request);
+            $data = [
+                'invoiceId' => RequestData::int($b, 'invoiceId'),
+                'date' => RequestData::string($b, 'date'),
+                'dueDate' => RequestData::string($b, 'dueDate', ''),
+                'reference' => RequestData::string($b, 'reference', ''),
+                'supplierReference' => RequestData::string($b, 'supplierReference'),
+                'memo' => RequestData::string($b, 'memo', ''),
+                'exchangeRate' => RequestData::float($b, 'exchangeRate', 1),
+                'dimension1' => RequestData::int($b, 'dimension1', 0),
+                'dimension2' => RequestData::int($b, 'dimension2', 0),
+                'lines' => $b['lines'] ?? [],
+            ];
+            return JsonResponse::success($response, $this->service->createSupplierCreditNote($data), [], 201);
+        } catch (InvalidArgumentException $e) {
+            return JsonResponse::error($response, 'VALIDATION_ERROR', $e->getMessage(), 422);
+        }
+    }
+
+
+    public function voidCustomerCreditNote(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->voidDocument($request, $response, ST_CUSTCREDIT, (int) $args['id']);
+    }
+
+    public function voidSupplierCreditNote(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->voidDocument($request, $response, ST_SUPPCREDIT, (int) $args['id']);
+    }
+
     public function voidSalesInvoice(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
         return $this->voidDocument($request, $response, ST_SALESINVOICE, (int) $args['id']);

@@ -266,7 +266,6 @@ SALES_INVOICE_ID=$(json_get "$TMP_DIR/response.json" data.id)
 [[ "$SALES_INVOICE_ID" =~ ^[0-9]+$ ]] || fail "invalid sales invoice id: $SALES_INVOICE_ID"
 request GET "sales/invoices/$SALES_INVOICE_ID"
 request GET sales/invoices
-
 info "void independent sales invoice and delivery"
 VOID_SO_REF="APIVSO$TS"
 VOID_SO_BODY=$(cat <<JSON
@@ -373,6 +372,31 @@ request POST supplier-payments "$VOID_SUPPLIER_PAYMENT_BODY"
 VOID_SUPPLIER_PAYMENT_ID=$(json_get "$TMP_DIR/response.json" data.id)
 request POST "supplier-payments/$VOID_SUPPLIER_PAYMENT_ID/void" '{"date":"2026-05-15","memo":"API smoke void supplier payment"}'
 [[ "$(json_get "$TMP_DIR/response.json" data.voided)" == "True" ]] || fail "supplier payment was not voided"
+
+
+info "create customer credit note"
+CUSTOMER_CREDIT_REF="APICN$TS"
+CUSTOMER_CREDIT_BODY=$(cat <<JSON
+{"invoiceId":$SALES_INVOICE_ID,"date":"2026-05-15","reference":"$CUSTOMER_CREDIT_REF","location":"MEL","memo":"API smoke customer credit $TS","lines":[{"stockId":"$STOCK_ID","quantity":1}]}
+JSON
+)
+request POST sales/credit-notes "$CUSTOMER_CREDIT_BODY"
+CUSTOMER_CREDIT_ID=$(json_get "$TMP_DIR/response.json" data.id)
+[[ "$CUSTOMER_CREDIT_ID" =~ ^[0-9]+$ ]] || fail "invalid customer credit note id: $CUSTOMER_CREDIT_ID"
+request POST "sales/credit-notes/$CUSTOMER_CREDIT_ID/void" '{"date":"2026-05-15","memo":"API smoke void customer credit"}'
+[[ "$(json_get "$TMP_DIR/response.json" data.voided)" == "True" ]] || fail "customer credit note was not voided"
+
+info "create supplier credit note"
+SUPPLIER_CREDIT_REF="APISC$TS"
+SUPPLIER_CREDIT_BODY=$(cat <<JSON
+{"invoiceId":$SUPPLIER_INVOICE_ID,"date":"2026-05-15","dueDate":"2026-05-15","reference":"$SUPPLIER_CREDIT_REF","supplierReference":"API smoke supplier credit $TS","memo":"API smoke supplier credit $TS","lines":[{"stockId":"$STOCK_ID","quantity":1,"price":3}]}
+JSON
+)
+request POST purchase/credit-notes "$SUPPLIER_CREDIT_BODY"
+SUPPLIER_CREDIT_ID=$(json_get "$TMP_DIR/response.json" data.id)
+[[ "$SUPPLIER_CREDIT_ID" =~ ^[0-9]+$ ]] || fail "invalid supplier credit note id: $SUPPLIER_CREDIT_ID"
+request POST "purchase/credit-notes/$SUPPLIER_CREDIT_ID/void" '{"date":"2026-05-15","memo":"API smoke void supplier credit"}'
+[[ "$(json_get "$TMP_DIR/response.json" data.voided)" == "True" ]] || fail "supplier credit note was not voided"
 
 info "create and void stock adjustment"
 STOCK_REF="APIS$TS"

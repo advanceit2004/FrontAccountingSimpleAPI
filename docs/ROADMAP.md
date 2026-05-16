@@ -5,7 +5,7 @@ This roadmap tracks the next stages for the new Slim 4 / PHP 8.4 JSON API for Fr
 ## Current validated baseline
 
 - Branch: `new-slim4-api`
-- Latest validated image: `advanceit2004/frontaccounting:2.4.20-php8.4-api-slim4.9`
+- Latest validated image: `advanceit2004/frontaccounting:2.4.20-php8.4-api-slim4.10`
 - Latest completed implementation commit: `Add safe lifecycle void APIs`
 - Runtime target: FrontAccounting `2.4.20`, PHP `8.4.21`, Slim 4
 - API base path: `/modules/api/public/index.php/v1`
@@ -183,10 +183,14 @@ Implemented endpoints:
 - [x] `POST /v1/supplier-payments/{id}/void`
 - [x] `POST /v1/journal-entries/{id}/void`
 - [x] `POST /v1/stock-adjustments/{id}/void`
+- [x] `POST /v1/sales/credit-notes`
+- [x] `POST /v1/sales/credit-notes/{id}/void`
+- [x] `POST /v1/purchase/credit-notes`
+- [x] `POST /v1/purchase/credit-notes/{id}/void`
 - [x] Add `SA_VOIDTRANSACTION` permission checks plus document-specific permissions
 - [x] Add smoke tests covering void success for each endpoint
-- [ ] Customer credit note workflows
-- [ ] Supplier credit note workflows
+- [x] Customer credit note workflows against sales invoices
+- [x] Supplier credit note workflows against supplier invoices
 - [ ] Add OpenAPI/README details under issue #2
 
 ---

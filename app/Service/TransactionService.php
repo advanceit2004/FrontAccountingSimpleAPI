@@ -734,6 +734,229 @@ final class TransactionService
         return ['id' => $id, 'reference' => $d['reference']];
     }
 
+
+    /** @param array<string,mixed> $d @return array<string,mixed> */
+    public function createCustomerCreditNote(array $d): array
+    {
+        Kernel::boot();
+        require_once Kernel::faRoot() . '/includes/ui/ui_globals.inc';
+        require_once Kernel::faRoot() . '/sales/includes/cart_class.inc';
+        require_once Kernel::faRoot() . '/sales/includes/sales_db.inc';
+
+        $invoiceId = (int) $d['invoiceId'];
+        if (!\get_customer_trans($invoiceId, ST_SALESINVOICE)) {
+            throw new InvalidArgumentException('unknown sales invoice: ' . $invoiceId);
+        }
+
+        $cart = new \Cart(ST_SALESINVOICE, $invoiceId, ST_CUSTCREDIT);
+        $cart->document_date = \sql2date($d['date']);
+        $cart->reference = $d['reference'] ?: $GLOBALS['Refs']->get_next(ST_CUSTCREDIT, null, [
+            'date' => $cart->document_date,
+            'customer' => $cart->customer_id,
+            'branch' => $cart->Branch,
+        ]);
+        $cart->Comments = $d['memo'];
+        $cart->Location = $d['location'] ?: $cart->Location;
+        if ((int) $d['shipVia'] > 0) {
+            $cart->ship_via = (int) $d['shipVia'];
+        }
+        if (array_key_exists('freightCost', $d) && $d['freightCost'] !== null) {
+            $cart->freight_cost = (float) $d['freightCost'];
+        }
+
+        $this->applyCustomerCreditLines($cart, $d['lines']);
+        $hasCredit = false;
+        foreach ($cart->line_items as $line) {
+            if ((float) $line->qty_dispatched > 0) {
+                $hasCredit = true;
+                break;
+            }
+        }
+        if (!$hasCredit && (float) $cart->freight_cost <= 0.0) {
+            throw new InvalidArgumentException('credit note requires at least one credited line or freight amount');
+        }
+
+        $writeOffAccount = (string) ($d['writeOffAccount'] ?? '');
+        $creditId = $cart->write($writeOffAccount === '' ? 0 : $writeOffAccount);
+        if ($creditId === -1) {
+            throw new InvalidArgumentException('reference is already in use');
+        }
+        if (!$creditId) {
+            throw new InvalidArgumentException('credit note could not be created');
+        }
+
+        return [
+            'id' => $creditId,
+            'type' => ST_CUSTCREDIT,
+            'invoiceId' => $invoiceId,
+            'reference' => $cart->reference,
+        ];
+    }
+
+    /** @param array<int|string,mixed> $lines */
+    private function applyCustomerCreditLines(\Cart $cart, array $lines): void
+    {
+        if ($lines === []) {
+            foreach ($cart->line_items as $line) {
+                $remaining = (float) $line->quantity - (float) $line->qty_done;
+                $line->qty_dispatched = max(0.0, $remaining);
+            }
+            return;
+        }
+
+        foreach ($cart->line_items as $line) {
+            $line->qty_dispatched = 0;
+        }
+
+        foreach ($lines as $lineData) {
+            if (!is_array($lineData)) {
+                throw new InvalidArgumentException('each credit line must be an object');
+            }
+            $lineId = (int) ($lineData['lineId'] ?? 0);
+            $stockId = (string) ($lineData['stockId'] ?? '');
+            $quantity = (float) ($lineData['quantity'] ?? 0);
+            if ($quantity <= 0) {
+                throw new InvalidArgumentException('credit line quantity must be greater than zero');
+            }
+            $matched = null;
+            foreach ($cart->line_items as $line) {
+                if (($lineId > 0 && (int) $line->id === $lineId) || ($lineId === 0 && $stockId !== '' && $line->stock_id === $stockId)) {
+                    $matched = $line;
+                    break;
+                }
+            }
+            if (!$matched) {
+                throw new InvalidArgumentException('credit line does not match invoice: ' . ($stockId ?: (string) $lineId));
+            }
+            $remaining = (float) $matched->quantity - (float) $matched->qty_done;
+            if ($quantity > $remaining) {
+                throw new InvalidArgumentException('credit quantity exceeds available invoice quantity for ' . $matched->stock_id);
+            }
+            $matched->qty_dispatched = $quantity;
+            if (isset($lineData['description'])) {
+                $matched->item_description = (string) $lineData['description'];
+            }
+        }
+    }
+
+    /** @param array<string,mixed> $d @return array<string,mixed> */
+    public function createSupplierCreditNote(array $d): array
+    {
+        Kernel::boot();
+        require_once Kernel::faRoot() . '/purchasing/includes/supp_trans_class.inc';
+        require_once Kernel::faRoot() . '/purchasing/includes/purchasing_db.inc';
+        require_once Kernel::faRoot() . '/gl/includes/db/gl_db_accounts.inc';
+
+        $invoiceId = (int) $d['invoiceId'];
+        if (!\exists_supp_trans(ST_SUPPINVOICE, $invoiceId)) {
+            throw new InvalidArgumentException('unknown supplier invoice: ' . $invoiceId);
+        }
+
+        $credit = new \supp_trans(ST_SUPPINVOICE, $invoiceId);
+        $credit->src_docs = [$invoiceId => $credit->supp_reference];
+        $credit->trans_type = ST_SUPPCREDIT;
+        $credit->trans_no = 0;
+        $credit->supp_reference = $d['supplierReference'];
+        $credit->reference = $d['reference'] ?: $GLOBALS['Refs']->get_next(ST_SUPPCREDIT, null, [
+            'supplier' => $credit->supplier_id,
+            'date' => \sql2date($d['date']),
+        ]);
+        $credit->tran_date = \sql2date($d['date']);
+        $credit->due_date = \sql2date($d['dueDate'] ?: $d['date']);
+        $credit->Comments = $d['memo'];
+        $credit->dimension = (int) $d['dimension1'];
+        $credit->dimension2 = (int) $d['dimension2'];
+        $credit->ex_rate = (float) $d['exchangeRate'];
+        $credit->ov_amount = $credit->ov_discount = 0;
+
+        $this->applySupplierCreditLines($credit, $d['lines']);
+        foreach ($credit->gl_codes as $glLine) {
+            if (!\get_gl_account($glLine->gl_code)) {
+                throw new InvalidArgumentException('unknown GL account: ' . $glLine->gl_code);
+            }
+            $credit->ov_amount += round((float) $glLine->amount, user_price_dec());
+        }
+        foreach ($credit->grn_items as $grn) {
+            $credit->ov_amount += round((float) $grn->this_quantity_inv * (float) $grn->chg_price, user_price_dec());
+        }
+        if (!$credit->is_valid_trans_to_post()) {
+            throw new InvalidArgumentException('supplier credit note requires at least one credited line or GL amount');
+        }
+
+        $creditId = \add_supp_invoice($credit);
+        if (!$creditId) {
+            throw new InvalidArgumentException('supplier credit note could not be created');
+        }
+
+        return [
+            'id' => $creditId,
+            'type' => ST_SUPPCREDIT,
+            'invoiceId' => $invoiceId,
+            'reference' => $credit->reference,
+            'supplierReference' => $credit->supp_reference,
+        ];
+    }
+
+    /** @param array<int|string,mixed> $lines */
+    private function applySupplierCreditLines(\supp_trans $credit, array $lines): void
+    {
+        if ($lines === []) {
+            return;
+        }
+
+        $availableByKey = [];
+        foreach ($credit->grn_items as $key => $grn) {
+            $availableByKey[$key] = abs((float) $grn->this_quantity_inv);
+            $grn->this_quantity_inv = 0;
+        }
+
+        foreach ($lines as $lineData) {
+            if (!is_array($lineData)) {
+                throw new InvalidArgumentException('each supplier credit line must be an object');
+            }
+            if (isset($lineData['account'])) {
+                $account = (string) $lineData['account'];
+                $amount = (float) ($lineData['amount'] ?? 0);
+                if ($account === '' || $amount <= 0) {
+                    throw new InvalidArgumentException('GL credit lines require account and positive amount');
+                }
+                $accountInfo = \get_gl_account($account);
+                if (!$accountInfo) {
+                    throw new InvalidArgumentException('unknown GL account: ' . $account);
+                }
+                $credit->add_gl_codes_to_trans($account, $accountInfo['account_name'], (int) ($lineData['dimension1'] ?? 0), (int) ($lineData['dimension2'] ?? 0), $amount, (string) ($lineData['memo'] ?? ''));
+                continue;
+            }
+
+            $grnItemId = (int) ($lineData['grnItemId'] ?? 0);
+            $stockId = (string) ($lineData['stockId'] ?? '');
+            $quantity = (float) ($lineData['quantity'] ?? 0);
+            if ($quantity <= 0) {
+                throw new InvalidArgumentException('supplier credit line quantity must be greater than zero');
+            }
+            $matched = null;
+            $matchedKey = null;
+            foreach ($credit->grn_items as $key => $grn) {
+                if (($grnItemId > 0 && (int) $grn->id === $grnItemId) || ($grnItemId === 0 && $stockId !== '' && $grn->item_code === $stockId)) {
+                    $matched = $grn;
+                    $matchedKey = $key;
+                    break;
+                }
+            }
+            if (!$matched || $matchedKey === null) {
+                throw new InvalidArgumentException('supplier credit line does not match invoice: ' . ($stockId ?: (string) $grnItemId));
+            }
+            $available = $availableByKey[$matchedKey] ?? 0.0;
+            if ($quantity > $available) {
+                throw new InvalidArgumentException('supplier credit quantity exceeds invoice quantity for ' . $matched->item_code);
+            }
+            $matched->this_quantity_inv = $quantity;
+            if (isset($lineData['price'])) {
+                $matched->chg_price = (float) $lineData['price'];
+            }
+        }
+    }
+
     /** @return array<string,mixed> */
     public function voidDocument(int $type, int $id, string $date, string $memo): array
     {
@@ -769,8 +992,10 @@ final class TransactionService
             ST_SALESINVOICE => ['table' => 'debtor_trans', 'where' => 'type=' . \db_escape(ST_SALESINVOICE) . ' AND trans_no=' . \db_escape($id), 'name' => 'sales invoice'],
             ST_CUSTDELIVERY => ['table' => 'debtor_trans', 'where' => 'type=' . \db_escape(ST_CUSTDELIVERY) . ' AND trans_no=' . \db_escape($id), 'name' => 'sales delivery'],
             ST_CUSTPAYMENT => ['table' => 'debtor_trans', 'where' => 'type=' . \db_escape(ST_CUSTPAYMENT) . ' AND trans_no=' . \db_escape($id), 'name' => 'customer payment'],
+            ST_CUSTCREDIT => ['table' => 'debtor_trans', 'where' => 'type=' . \db_escape(ST_CUSTCREDIT) . ' AND trans_no=' . \db_escape($id), 'name' => 'customer credit note'],
             ST_SUPPRECEIVE => ['table' => 'grn_batch', 'where' => 'id=' . \db_escape($id), 'name' => 'purchase receipt'],
             ST_SUPPINVOICE => ['table' => 'supp_trans', 'where' => 'type=' . \db_escape(ST_SUPPINVOICE) . ' AND trans_no=' . \db_escape($id), 'name' => 'supplier invoice'],
+            ST_SUPPCREDIT => ['table' => 'supp_trans', 'where' => 'type=' . \db_escape(ST_SUPPCREDIT) . ' AND trans_no=' . \db_escape($id), 'name' => 'supplier credit note'],
             ST_SUPPAYMENT => ['table' => 'supp_trans', 'where' => 'type=' . \db_escape(ST_SUPPAYMENT) . ' AND trans_no=' . \db_escape($id), 'name' => 'supplier payment'],
             ST_JOURNAL => ['table' => 'journal', 'where' => 'type=' . \db_escape(ST_JOURNAL) . ' AND trans_no=' . \db_escape($id), 'name' => 'journal entry'],
             ST_INVADJUST => ['table' => 'stock_moves', 'where' => 'type=' . \db_escape(ST_INVADJUST) . ' AND trans_no=' . \db_escape($id), 'name' => 'stock adjustment'],
