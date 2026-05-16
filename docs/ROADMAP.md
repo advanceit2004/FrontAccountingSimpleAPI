@@ -6,7 +6,7 @@ This roadmap tracks the next stages for the new Slim 4 / PHP 8.4 JSON API for Fr
 
 - Branch: `new-slim4-api`
 - Latest validated image: `advanceit2004/frontaccounting:2.4.20-php8.4-api-slim4.10`
-- Latest completed implementation commit: `Add safe lifecycle void APIs`
+- Latest completed implementation commit: `3e032cf Document API workflows and OpenAPI coverage`
 - Runtime target: FrontAccounting `2.4.20`, PHP `8.4.21`, Slim 4
 - API base path: `/modules/api/public/index.php/v1`
 
@@ -73,7 +73,7 @@ GitHub parent issue: [#1 Roadmap: Stage 8 — production readiness and future AP
 
 GitHub issue: [#3 Stage 8: Production deployment and security checklist](https://github.com/advanceit2004/FrontAccountingSimpleAPI/issues/3)
 
-- [ ] Decide production image tag to deploy, currently recommended: `2.4.20-php8.4-api-slim4.7`
+- [x] Decide production image tag to deploy: `2.4.20-php8.4-api-slim4.10`
 - [ ] Set `FA_API_JWT_SECRET` to a long random production secret
 - [ ] Set `FA_API_TOKEN_TTL`, for example `3600`
 - [ ] Review API user permissions and create least-privilege API roles
@@ -84,16 +84,17 @@ GitHub issue: [#3 Stage 8: Production deployment and security checklist](https:/
 
 ### 8.2 OpenAPI and documentation completion
 
-GitHub issue: [#2 Stage 8: Complete OpenAPI and README documentation](https://github.com/advanceit2004/FrontAccountingSimpleAPI/issues/2)
+GitHub issue: [#2 Stage 8: Complete OpenAPI and README documentation](https://github.com/advanceit2004/FrontAccountingSimpleAPI/issues/2) — **substantially completed**
 
-- [ ] Expand `docs/openapi.yaml` with all implemented endpoints
-- [ ] Add request/response schemas for create/update endpoints
-- [ ] Add detail response schemas for posted documents
-- [ ] Add error response examples
-- [ ] Add authentication examples
-- [ ] Add business workflow examples to README
-- [ ] Document smoke-test prerequisites and required test data
-- [ ] Document FrontAccounting permission area requirements per endpoint
+- [x] Expand `docs/openapi.yaml` with all implemented endpoints
+- [x] Add request schemas for major create/update endpoints
+- [x] Add endpoint coverage for posted document detail reads
+- [x] Add shared error response schema/examples
+- [x] Add authentication examples to README
+- [x] Add business workflow examples to README
+- [x] Document smoke-test command and current validated image
+- [ ] Add richer per-endpoint response object schemas for generated clients
+- [ ] Document FrontAccounting permission area requirements per endpoint in a dedicated matrix
 
 ### 8.3 CI/CD automation
 
@@ -117,7 +118,7 @@ GitHub issue: [#6 Stage 8: Add posted document detail endpoints](https://github.
 - [x] `GET /v1/purchase/receipts/{id}`
 - [x] `GET /v1/purchase/invoices/{id}` with line details
 - [x] Add smoke-test coverage for each detail endpoint
-- [ ] Add OpenAPI schemas for detail responses under issue #2
+- [x] Add OpenAPI path coverage for detail responses under issue #2
 
 ### 8.5 Payment allocation and reconciliation
 
@@ -129,7 +130,7 @@ GitHub issue: [#4 Stage 8: Add payment allocation and reconciliation workflows](
 - [x] Implement customer payment allocation endpoint
 - [x] Implement supplier payment allocation endpoint
 - [x] Add smoke tests for allocation scenarios
-- [ ] Add OpenAPI/README details under issue #2
+- [x] Add OpenAPI/README details under issue #2
 
 ### 8.6 Release and versioning process
 
@@ -169,7 +170,7 @@ Completed in commit `cbbc9b5 Add setup dependency APIs and validation`.
 
 ## Stage 9 — Safer accounting lifecycle operations
 
-GitHub issue: [#8 Stage 9: Plan safe accounting lifecycle operations](https://github.com/advanceit2004/FrontAccountingSimpleAPI/issues/8) — **core void operations completed**
+GitHub issue: [#8 Stage 9: Plan safe accounting lifecycle operations](https://github.com/advanceit2004/FrontAccountingSimpleAPI/issues/8) — **completed for core API scope**
 
 These operations are implemented through FrontAccounting's native `void_transaction()` path, so GL, stock, bank, allocation, tax, audit trail, and `voided` table side effects remain under FrontAccounting's own accounting lifecycle logic.
 
@@ -191,7 +192,7 @@ Implemented endpoints:
 - [x] Add smoke tests covering void success for each endpoint
 - [x] Customer credit note workflows against sales invoices
 - [x] Supplier credit note workflows against supplier invoices
-- [ ] Add OpenAPI/README details under issue #2
+- [x] Add OpenAPI/README details under issue #2
 
 ---
 
@@ -212,9 +213,7 @@ GitHub issue: [#9 Stage 10: Operational hardening and integrations](https://gith
 ## Recommended next implementation order
 
 1. Deploy/security checklist (#3)
-2. OpenAPI and README completion (#2)
+2. Release/versioning process (#7)
 3. CI/CD smoke-test pipeline (#5)
-4. Release/versioning process (#7)
-5. Payment allocation workflows (#4)
-6. Safe lifecycle operations (#8)
-7. Operational hardening/integrations (#9)
+4. Operational hardening/integrations (#9)
+5. Richer generated-client OpenAPI schemas and permission matrix under #2
