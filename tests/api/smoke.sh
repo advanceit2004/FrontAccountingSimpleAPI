@@ -271,8 +271,15 @@ CUSTOMER_PAYMENT_BODY=$(cat <<JSON
 JSON
 )
 request POST customer-payments "$CUSTOMER_PAYMENT_BODY"
+CUSTOMER_PAYMENT_ID=$(json_get "$TMP_DIR/response.json" data.id)
 PAYMENT_BRANCH_ID=$(json_get "$TMP_DIR/response.json" data.branchId)
 [[ "$PAYMENT_BRANCH_ID" =~ ^[0-9]+$ && "$PAYMENT_BRANCH_ID" != "0" ]] || fail "customer payment did not resolve branch id"
+CUSTOMER_ALLOC_BODY=$(cat <<JSON
+{"targetId":$SALES_INVOICE_ID,"amount":1,"date":"2026-05-15"}
+JSON
+)
+request POST "customer-payments/$CUSTOMER_PAYMENT_ID/allocations" "$CUSTOMER_ALLOC_BODY"
+request GET "customer-payments/$CUSTOMER_PAYMENT_ID/allocations"
 
 info "create supplier payment"
 SUPPLIER_PAYMENT_REF="APISP$TS"
@@ -281,6 +288,13 @@ SUPPLIER_PAYMENT_BODY=$(cat <<JSON
 JSON
 )
 request POST supplier-payments "$SUPPLIER_PAYMENT_BODY"
+SUPPLIER_PAYMENT_ID=$(json_get "$TMP_DIR/response.json" data.id)
+SUPPLIER_ALLOC_BODY=$(cat <<JSON
+{"targetId":$SUPPLIER_INVOICE_ID,"amount":1,"date":"2026-05-15"}
+JSON
+)
+request POST "supplier-payments/$SUPPLIER_PAYMENT_ID/allocations" "$SUPPLIER_ALLOC_BODY"
+request GET "supplier-payments/$SUPPLIER_PAYMENT_ID/allocations"
 
 info "create stock adjustment"
 STOCK_REF="APIS$TS"

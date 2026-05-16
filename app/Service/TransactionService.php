@@ -543,6 +543,143 @@ final class TransactionService
         return ['id' => $id, 'reference' => $d['reference']];
     }
 
+
+    /** @return array<string,mixed> */
+    public function getCustomerPaymentAllocations(int $paymentId): array
+    {
+        Kernel::boot();
+        $payment = $this->customerTrans(ST_CUSTPAYMENT, $paymentId);
+        if ($payment === []) {
+            return [];
+        }
+        $payment['allocations'] = $this->queryRows(
+            'SELECT ca.*, dt.reference, dt.tran_date, dt.due_date, '
+            . '(dt.ov_amount+dt.ov_gst+dt.ov_freight+dt.ov_freight_tax+dt.ov_discount) AS total, dt.alloc '
+            . 'FROM ' . TB_PREF . 'cust_allocations ca '
+            . 'LEFT JOIN ' . TB_PREF . 'debtor_trans dt ON dt.type=ca.trans_type_to AND dt.trans_no=ca.trans_no_to '
+            . 'WHERE ca.trans_type_from=' . \db_escape(ST_CUSTPAYMENT) . ' AND ca.trans_no_from=' . \db_escape($paymentId) . ' AND ca.person_id=' . \db_escape((int) $payment['debtor_no']) . ' ORDER BY ca.id',
+            'could not get customer payment allocations'
+        );
+        return $payment;
+    }
+
+    /** @param array<string,mixed> $d */
+    public function allocateCustomerPayment(int $paymentId, array $d): array
+    {
+        Kernel::boot();
+        require_once Kernel::faRoot() . '/sales/includes/db/custalloc_db.inc';
+        $payment = $this->customerTrans(ST_CUSTPAYMENT, $paymentId);
+        if ($payment === []) {
+            throw new InvalidArgumentException('unknown customer payment id: ' . $paymentId);
+        }
+        $invoice = $this->customerTrans($d['targetType'], $d['targetId']);
+        if ($invoice === []) {
+            throw new InvalidArgumentException('unknown customer target transaction: ' . $d['targetId']);
+        }
+        if ((int) $payment['debtor_no'] !== (int) $invoice['debtor_no']) {
+            throw new InvalidArgumentException('customer payment and target transaction belong to different customers');
+        }
+        $amount = $this->validatedAllocationAmount($d['amount'], $payment, $invoice, 'customer');
+        $date = \sql2date($d['date'] ?: ($payment['tran_date'] ?? date('Y-m-d')));
+        \begin_transaction();
+        \add_cust_allocation($amount, ST_CUSTPAYMENT, $paymentId, $d['targetType'], $d['targetId'], (int) $payment['debtor_no'], $date);
+        \update_debtor_trans_allocation(ST_CUSTPAYMENT, $paymentId, (int) $payment['debtor_no']);
+        \update_debtor_trans_allocation($d['targetType'], $d['targetId'], (int) $payment['debtor_no']);
+        \commit_transaction();
+        return ['paymentId' => $paymentId, 'targetType' => $d['targetType'], 'targetId' => $d['targetId'], 'amount' => $amount];
+    }
+
+    /** @return array<string,mixed> */
+    public function getSupplierPaymentAllocations(int $paymentId): array
+    {
+        Kernel::boot();
+        $payment = $this->supplierTrans(ST_SUPPAYMENT, $paymentId);
+        if ($payment === []) {
+            return [];
+        }
+        $payment['allocations'] = $this->queryRows(
+            'SELECT sa.*, st.reference, st.supp_reference, st.tran_date, st.due_date, '
+            . '(st.ov_amount+st.ov_gst+st.ov_discount) AS total, st.alloc '
+            . 'FROM ' . TB_PREF . 'supp_allocations sa '
+            . 'LEFT JOIN ' . TB_PREF . 'supp_trans st ON st.type=sa.trans_type_to AND st.trans_no=sa.trans_no_to '
+            . 'WHERE sa.trans_type_from=' . \db_escape(ST_SUPPAYMENT) . ' AND sa.trans_no_from=' . \db_escape($paymentId) . ' AND sa.person_id=' . \db_escape((int) $payment['supplier_id']) . ' ORDER BY sa.id',
+            'could not get supplier payment allocations'
+        );
+        return $payment;
+    }
+
+    /** @param array<string,mixed> $d */
+    public function allocateSupplierPayment(int $paymentId, array $d): array
+    {
+        Kernel::boot();
+        require_once Kernel::faRoot() . '/purchasing/includes/db/suppalloc_db.inc';
+        $payment = $this->supplierTrans(ST_SUPPAYMENT, $paymentId);
+        if ($payment === []) {
+            throw new InvalidArgumentException('unknown supplier payment id: ' . $paymentId);
+        }
+        $invoice = $this->supplierTrans($d['targetType'], $d['targetId']);
+        if ($invoice === []) {
+            throw new InvalidArgumentException('unknown supplier target transaction: ' . $d['targetId']);
+        }
+        if ((int) $payment['supplier_id'] !== (int) $invoice['supplier_id']) {
+            throw new InvalidArgumentException('supplier payment and target transaction belong to different suppliers');
+        }
+        $amount = $this->validatedAllocationAmount($d['amount'], $payment, $invoice, 'supplier');
+        $date = \sql2date($d['date'] ?: ($payment['tran_date'] ?? date('Y-m-d')));
+        \begin_transaction();
+        \add_supp_allocation($amount, ST_SUPPAYMENT, $paymentId, $d['targetType'], $d['targetId'], (int) $payment['supplier_id'], $date);
+        \update_supp_trans_allocation(ST_SUPPAYMENT, $paymentId, (int) $payment['supplier_id']);
+        \update_supp_trans_allocation($d['targetType'], $d['targetId'], (int) $payment['supplier_id']);
+        \commit_transaction();
+        return ['paymentId' => $paymentId, 'targetType' => $d['targetType'], 'targetId' => $d['targetId'], 'amount' => $amount];
+    }
+
+    /** @return array<string,mixed> */
+    private function customerTrans(int $type, int $id): array
+    {
+        $rows = $this->queryRows(
+            'SELECT *, (ov_amount+ov_gst+ov_freight+ov_freight_tax+ov_discount) AS Total FROM ' . TB_PREF . 'debtor_trans WHERE type=' . \db_escape($type) . ' AND trans_no=' . \db_escape($id) . ' LIMIT 1',
+            'could not get customer transaction'
+        );
+        return $rows[0] ?? [];
+    }
+
+    /** @return array<string,mixed> */
+    private function supplierTrans(int $type, int $id): array
+    {
+        $rows = $this->queryRows(
+            'SELECT *, (ov_amount+ov_gst+ov_discount) AS Total FROM ' . TB_PREF . 'supp_trans WHERE type=' . \db_escape($type) . ' AND trans_no=' . \db_escape($id) . ' LIMIT 1',
+            'could not get supplier transaction'
+        );
+        return $rows[0] ?? [];
+    }
+
+    /** @param array<string,mixed> $from @param array<string,mixed> $to */
+    private function validatedAllocationAmount(float $requested, array $from, array $to, string $context): float
+    {
+        if ($requested <= 0) {
+            throw new InvalidArgumentException('allocation amount must be positive');
+        }
+        $fromAvailable = max(0.0, abs((float) $from['Total']) - abs((float) $from['alloc']));
+        $toAvailable = max(0.0, abs((float) $to['Total']) - abs((float) $to['alloc']));
+        $limit = min($fromAvailable, $toAvailable);
+        if ($requested > $limit + 0.000001) {
+            throw new InvalidArgumentException($context . ' allocation amount exceeds available balance');
+        }
+        return $requested;
+    }
+
+    /** @return list<array<string,mixed>> */
+    private function queryRows(string $sql, string $message): array
+    {
+        $rows = [];
+        $result = \db_query($sql, $message);
+        while ($row = \db_fetch_assoc($result)) {
+            $rows[] = $row;
+        }
+        return $rows;
+    }
+
     public function getJournalEntry(int $id): array
     {
         Kernel::boot();

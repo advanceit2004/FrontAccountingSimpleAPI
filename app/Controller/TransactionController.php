@@ -224,6 +224,57 @@ final class TransactionController
         }
     }
 
+
+    public function getCustomerPaymentAllocations(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $payment = $this->service->getCustomerPaymentAllocations((int) $args['id']);
+        if ($payment === []) {
+            return JsonResponse::error($response, 'NOT_FOUND', 'Customer payment was not found', 404);
+        }
+        return JsonResponse::success($response, $payment);
+    }
+
+    public function allocateCustomerPayment(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        try {
+            $b = RequestData::body($request);
+            $data = [
+                'targetType' => RequestData::int($b, 'targetType', ST_SALESINVOICE),
+                'targetId' => RequestData::int($b, 'targetId'),
+                'amount' => RequestData::float($b, 'amount'),
+                'date' => RequestData::string($b, 'date', ''),
+            ];
+            return JsonResponse::success($response, $this->service->allocateCustomerPayment((int) $args['id'], $data), [], 201);
+        } catch (InvalidArgumentException $e) {
+            return JsonResponse::error($response, 'VALIDATION_ERROR', $e->getMessage(), 422);
+        }
+    }
+
+    public function getSupplierPaymentAllocations(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $payment = $this->service->getSupplierPaymentAllocations((int) $args['id']);
+        if ($payment === []) {
+            return JsonResponse::error($response, 'NOT_FOUND', 'Supplier payment was not found', 404);
+        }
+        return JsonResponse::success($response, $payment);
+    }
+
+    public function allocateSupplierPayment(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        try {
+            $b = RequestData::body($request);
+            $data = [
+                'targetType' => RequestData::int($b, 'targetType', ST_SUPPINVOICE),
+                'targetId' => RequestData::int($b, 'targetId'),
+                'amount' => RequestData::float($b, 'amount'),
+                'date' => RequestData::string($b, 'date', ''),
+            ];
+            return JsonResponse::success($response, $this->service->allocateSupplierPayment((int) $args['id'], $data), [], 201);
+        } catch (InvalidArgumentException $e) {
+            return JsonResponse::error($response, 'VALIDATION_ERROR', $e->getMessage(), 422);
+        }
+    }
+
     public function getJournalEntry(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
         $entry = $this->service->getJournalEntry((int) $args['id']);

@@ -146,6 +146,12 @@ JSON
 )
 request POST customer-payments "$CP_BODY"
 CP_ID=$(json_get "$TMP_DIR/response.json" data.id)
+CP_ALLOC_BODY=$(cat <<JSON
+{"targetId":$INV_ID,"amount":50.00,"date":"$DOC_DATE"}
+JSON
+)
+request POST "customer-payments/$CP_ID/allocations" "$CP_ALLOC_BODY"
+request GET "customer-payments/$CP_ID/allocations"
 
 info "create supplier payment"
 SP_REF="UI-SP-$RUN_ID"
@@ -155,6 +161,12 @@ JSON
 )
 request POST supplier-payments "$SP_BODY"
 SP_ID=$(json_get "$TMP_DIR/response.json" data.id)
+SP_ALLOC_BODY=$(cat <<JSON
+{"targetId":$SUPP_INV_ID,"amount":62.50,"date":"$DOC_DATE"}
+JSON
+)
+request POST "supplier-payments/$SP_ID/allocations" "$SP_ALLOC_BODY"
+request GET "supplier-payments/$SP_ID/allocations"
 
 info "create journal entry"
 JOURNAL_REF="UI-JNL-$RUN_ID"
@@ -197,6 +209,7 @@ Base URL: $BASE_URL
 - Supplier Payment: $SP_REF
   - API ID: $SP_ID
   - Amount: 68.75
+  - Allocated to supplier invoice: 62.50
 
 ## Sales workflow
 
@@ -209,6 +222,7 @@ Base URL: $BASE_URL
 - Customer Payment: $CP_REF
   - API ID: $CP_ID
   - Amount: 55.00
+  - Allocated to sales invoice: 50.00
 
 ## GL / stock
 

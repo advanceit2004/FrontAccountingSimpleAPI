@@ -66,7 +66,11 @@ return function (App $app): void {
         $group->post('/purchase/invoices', [TransactionController::class, 'createSupplierInvoice'])->add(new BearerTokenMiddleware(['SA_SUPPLIERINVOICE']));
         $group->get('/purchase/invoices/{id}', [CatalogController::class, 'supplierInvoice'])->add(new BearerTokenMiddleware(['SA_SUPPTRANSVIEW', 'SA_SUPPLIERINVOICE', 'SA_OPEN']));
         $group->get('/customer-payments', [CatalogController::class, 'customerPayments'])->add(new BearerTokenMiddleware(['SA_SALESTRANSVIEW', 'SA_SALESPAYMNT', 'SA_OPEN']));
+        $group->get('/customer-payments/{id}/allocations', [TransactionController::class, 'getCustomerPaymentAllocations'])->add(new BearerTokenMiddleware(['SA_SALESTRANSVIEW', 'SA_SALESPAYMNT', 'SA_OPEN']));
+        $group->post('/customer-payments/{id}/allocations', [TransactionController::class, 'allocateCustomerPayment'])->add(new BearerTokenMiddleware(['SA_SALESPAYMNT']));
         $group->get('/supplier-payments', [CatalogController::class, 'supplierPayments'])->add(new BearerTokenMiddleware(['SA_SUPPTRANSVIEW', 'SA_SUPPLIERPAYMNT', 'SA_OPEN']));
+        $group->get('/supplier-payments/{id}/allocations', [TransactionController::class, 'getSupplierPaymentAllocations'])->add(new BearerTokenMiddleware(['SA_SUPPTRANSVIEW', 'SA_SUPPLIERPAYMNT', 'SA_OPEN']));
+        $group->post('/supplier-payments/{id}/allocations', [TransactionController::class, 'allocateSupplierPayment'])->add(new BearerTokenMiddleware(['SA_SUPPLIERPAYMNT']));
 
         $group->post('/items/categories', [MutationController::class, 'createItemCategory'])->add(new BearerTokenMiddleware(['SA_ITEMCATEGORY']));
         $group->put('/items/categories/{id}', [MutationController::class, 'updateItemCategory'])->add(new BearerTokenMiddleware(['SA_ITEMCATEGORY']));
