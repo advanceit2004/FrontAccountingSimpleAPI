@@ -56,19 +56,25 @@ return function (App $app): void {
         $group->post('/sales/orders', [TransactionController::class, 'createSalesOrder'])->add(new BearerTokenMiddleware(['SA_SALESORDER']));
         $group->post('/sales/deliveries', [TransactionController::class, 'createSalesDelivery'])->add(new BearerTokenMiddleware(['SA_SALESDELIVERY']));
         $group->get('/sales/deliveries/{id}', [CatalogController::class, 'salesDelivery'])->add(new BearerTokenMiddleware(['SA_SALESTRANSVIEW', 'SA_SALESDELIVERY', 'SA_OPEN']));
+        $group->post('/sales/deliveries/{id}/void', [TransactionController::class, 'voidSalesDelivery'])->add(new BearerTokenMiddleware(['SA_VOIDTRANSACTION', 'SA_SALESDELIVERY']));
         $group->post('/sales/invoices', [TransactionController::class, 'createSalesInvoice'])->add(new BearerTokenMiddleware(['SA_SALESINVOICE']));
         $group->get('/sales/invoices', [CatalogController::class, 'salesInvoices'])->add(new BearerTokenMiddleware(['SA_SALESTRANSVIEW', 'SA_SALESINVOICE', 'SA_OPEN']));
         $group->get('/sales/invoices/{id}', [CatalogController::class, 'salesInvoice'])->add(new BearerTokenMiddleware(['SA_SALESTRANSVIEW', 'SA_SALESINVOICE', 'SA_OPEN']));
+        $group->post('/sales/invoices/{id}/void', [TransactionController::class, 'voidSalesInvoice'])->add(new BearerTokenMiddleware(['SA_VOIDTRANSACTION', 'SA_SALESINVOICE']));
         $group->get('/purchase/orders', [CatalogController::class, 'purchaseOrders'])->add(new BearerTokenMiddleware(['SA_SUPPTRANSVIEW', 'SA_PURCHASEORDER', 'SA_OPEN']));
         $group->post('/purchase/orders', [TransactionController::class, 'createPurchaseOrder'])->add(new BearerTokenMiddleware(['SA_PURCHASEORDER']));
         $group->post('/purchase/receipts', [TransactionController::class, 'createPurchaseReceipt'])->add(new BearerTokenMiddleware(['SA_GRN']));
         $group->get('/purchase/receipts/{id}', [CatalogController::class, 'purchaseReceipt'])->add(new BearerTokenMiddleware(['SA_SUPPTRANSVIEW', 'SA_GRN', 'SA_OPEN']));
+        $group->post('/purchase/receipts/{id}/void', [TransactionController::class, 'voidPurchaseReceipt'])->add(new BearerTokenMiddleware(['SA_VOIDTRANSACTION', 'SA_GRN']));
         $group->post('/purchase/invoices', [TransactionController::class, 'createSupplierInvoice'])->add(new BearerTokenMiddleware(['SA_SUPPLIERINVOICE']));
         $group->get('/purchase/invoices/{id}', [CatalogController::class, 'supplierInvoice'])->add(new BearerTokenMiddleware(['SA_SUPPTRANSVIEW', 'SA_SUPPLIERINVOICE', 'SA_OPEN']));
+        $group->post('/purchase/invoices/{id}/void', [TransactionController::class, 'voidSupplierInvoice'])->add(new BearerTokenMiddleware(['SA_VOIDTRANSACTION', 'SA_SUPPLIERINVOICE']));
         $group->get('/customer-payments', [CatalogController::class, 'customerPayments'])->add(new BearerTokenMiddleware(['SA_SALESTRANSVIEW', 'SA_SALESPAYMNT', 'SA_OPEN']));
+        $group->post('/customer-payments/{id}/void', [TransactionController::class, 'voidCustomerPayment'])->add(new BearerTokenMiddleware(['SA_VOIDTRANSACTION', 'SA_SALESPAYMNT']));
         $group->get('/customer-payments/{id}/allocations', [TransactionController::class, 'getCustomerPaymentAllocations'])->add(new BearerTokenMiddleware(['SA_SALESTRANSVIEW', 'SA_SALESPAYMNT', 'SA_OPEN']));
         $group->post('/customer-payments/{id}/allocations', [TransactionController::class, 'allocateCustomerPayment'])->add(new BearerTokenMiddleware(['SA_SALESPAYMNT']));
         $group->get('/supplier-payments', [CatalogController::class, 'supplierPayments'])->add(new BearerTokenMiddleware(['SA_SUPPTRANSVIEW', 'SA_SUPPLIERPAYMNT', 'SA_OPEN']));
+        $group->post('/supplier-payments/{id}/void', [TransactionController::class, 'voidSupplierPayment'])->add(new BearerTokenMiddleware(['SA_VOIDTRANSACTION', 'SA_SUPPLIERPAYMNT']));
         $group->get('/supplier-payments/{id}/allocations', [TransactionController::class, 'getSupplierPaymentAllocations'])->add(new BearerTokenMiddleware(['SA_SUPPTRANSVIEW', 'SA_SUPPLIERPAYMNT', 'SA_OPEN']));
         $group->post('/supplier-payments/{id}/allocations', [TransactionController::class, 'allocateSupplierPayment'])->add(new BearerTokenMiddleware(['SA_SUPPLIERPAYMNT']));
 
@@ -81,7 +87,9 @@ return function (App $app): void {
         $group->post('/suppliers', [MutationController::class, 'createSupplier'])->add(new BearerTokenMiddleware(['SA_SUPPLIER']));
         $group->put('/suppliers/{id}', [MutationController::class, 'updateSupplier'])->add(new BearerTokenMiddleware(['SA_SUPPLIER']));
         $group->get('/journal-entries/{id}', [TransactionController::class, 'getJournalEntry'])->add(new BearerTokenMiddleware(['SA_GLTRANSVIEW', 'SA_JOURNALENTRY', 'SA_OPEN']));
+        $group->post('/journal-entries/{id}/void', [TransactionController::class, 'voidJournalEntry'])->add(new BearerTokenMiddleware(['SA_VOIDTRANSACTION', 'SA_JOURNALENTRY']));
         $group->post('/journal-entries', [TransactionController::class, 'createJournalEntry'])->add(new BearerTokenMiddleware(['SA_JOURNALENTRY']));
+        $group->post('/stock-adjustments/{id}/void', [TransactionController::class, 'voidStockAdjustment'])->add(new BearerTokenMiddleware(['SA_VOIDTRANSACTION', 'SA_INVENTORYADJUSTMENT']));
         $group->post('/stock-adjustments', [TransactionController::class, 'createStockAdjustment'])->add(new BearerTokenMiddleware(['SA_INVENTORYADJUSTMENT']));
         $group->post('/customer-payments', [TransactionController::class, 'createCustomerPayment'])->add(new BearerTokenMiddleware(['SA_SALESPAYMNT']));
         $group->post('/supplier-payments', [TransactionController::class, 'createSupplierPayment'])->add(new BearerTokenMiddleware(['SA_SUPPLIERPAYMNT']));

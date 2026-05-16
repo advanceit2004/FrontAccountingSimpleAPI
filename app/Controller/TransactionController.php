@@ -300,4 +300,57 @@ final class TransactionController
             return JsonResponse::error($response, 'VALIDATION_ERROR', $e->getMessage(), 422);
         }
     }
+
+    public function voidSalesInvoice(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->voidDocument($request, $response, ST_SALESINVOICE, (int) $args['id']);
+    }
+
+    public function voidSalesDelivery(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->voidDocument($request, $response, ST_CUSTDELIVERY, (int) $args['id']);
+    }
+
+    public function voidCustomerPayment(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->voidDocument($request, $response, ST_CUSTPAYMENT, (int) $args['id']);
+    }
+
+    public function voidPurchaseReceipt(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->voidDocument($request, $response, ST_SUPPRECEIVE, (int) $args['id']);
+    }
+
+    public function voidSupplierInvoice(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->voidDocument($request, $response, ST_SUPPINVOICE, (int) $args['id']);
+    }
+
+    public function voidSupplierPayment(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->voidDocument($request, $response, ST_SUPPAYMENT, (int) $args['id']);
+    }
+
+    public function voidJournalEntry(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->voidDocument($request, $response, ST_JOURNAL, (int) $args['id']);
+    }
+
+    public function voidStockAdjustment(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->voidDocument($request, $response, ST_INVADJUST, (int) $args['id']);
+    }
+
+    private function voidDocument(ServerRequestInterface $request, ResponseInterface $response, int $type, int $id): ResponseInterface
+    {
+        try {
+            $b = RequestData::body($request);
+            $date = RequestData::string($b, 'date', date('Y-m-d'));
+            $memo = RequestData::string($b, 'memo', 'Voided via API');
+            return JsonResponse::success($response, $this->service->voidDocument($type, $id, $date, $memo));
+        } catch (InvalidArgumentException $e) {
+            return JsonResponse::error($response, 'VALIDATION_ERROR', $e->getMessage(), 422);
+        }
+    }
+
 }

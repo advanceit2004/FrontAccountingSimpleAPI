@@ -733,4 +733,57 @@ final class TransactionService
         $id = \add_stock_adjustment($cart->line_items, $d['location'], \sql2date($d['date']), $d['reference'], $d['memo']);
         return ['id' => $id, 'reference' => $d['reference']];
     }
+
+    /** @return array<string,mixed> */
+    public function voidDocument(int $type, int $id, string $date, string $memo): array
+    {
+        Kernel::boot();
+        require_once Kernel::faRoot() . '/sales/includes/sales_db.inc';
+        require_once Kernel::faRoot() . '/purchasing/includes/purchasing_db.inc';
+        require_once Kernel::faRoot() . '/gl/includes/db/gl_journal.inc';
+        require_once Kernel::faRoot() . '/admin/db/voiding_db.inc';
+
+        $this->assertVoidableSourceExists($type, $id);
+        if (\get_voided_entry($type, $id)) {
+            throw new InvalidArgumentException('transaction is already voided');
+        }
+
+        $voidDate = \sql2date($date);
+        $message = \void_transaction($type, $id, $voidDate, $memo);
+        if ($message) {
+            throw new InvalidArgumentException((string) $message);
+        }
+
+        $voided = \get_voided_entry($type, $id);
+        return [
+            'type' => $type,
+            'id' => $id,
+            'voided' => $voided ? true : false,
+            'voidedEntry' => $voided ?: null,
+        ];
+    }
+
+    private function assertVoidableSourceExists(int $type, int $id): void
+    {
+        $map = [
+            ST_SALESINVOICE => ['table' => 'debtor_trans', 'where' => 'type=' . \db_escape(ST_SALESINVOICE) . ' AND trans_no=' . \db_escape($id), 'name' => 'sales invoice'],
+            ST_CUSTDELIVERY => ['table' => 'debtor_trans', 'where' => 'type=' . \db_escape(ST_CUSTDELIVERY) . ' AND trans_no=' . \db_escape($id), 'name' => 'sales delivery'],
+            ST_CUSTPAYMENT => ['table' => 'debtor_trans', 'where' => 'type=' . \db_escape(ST_CUSTPAYMENT) . ' AND trans_no=' . \db_escape($id), 'name' => 'customer payment'],
+            ST_SUPPRECEIVE => ['table' => 'grn_batch', 'where' => 'id=' . \db_escape($id), 'name' => 'purchase receipt'],
+            ST_SUPPINVOICE => ['table' => 'supp_trans', 'where' => 'type=' . \db_escape(ST_SUPPINVOICE) . ' AND trans_no=' . \db_escape($id), 'name' => 'supplier invoice'],
+            ST_SUPPAYMENT => ['table' => 'supp_trans', 'where' => 'type=' . \db_escape(ST_SUPPAYMENT) . ' AND trans_no=' . \db_escape($id), 'name' => 'supplier payment'],
+            ST_JOURNAL => ['table' => 'journal', 'where' => 'type=' . \db_escape(ST_JOURNAL) . ' AND trans_no=' . \db_escape($id), 'name' => 'journal entry'],
+            ST_INVADJUST => ['table' => 'stock_moves', 'where' => 'type=' . \db_escape(ST_INVADJUST) . ' AND trans_no=' . \db_escape($id), 'name' => 'stock adjustment'],
+        ];
+        if (!isset($map[$type])) {
+            throw new InvalidArgumentException('unsupported void transaction type: ' . $type);
+        }
+        $m = $map[$type];
+        $sql = 'SELECT 1 FROM ' . TB_PREF . $m['table'] . ' WHERE ' . $m['where'] . ' LIMIT 1';
+        $result = \db_query($sql, 'could not validate ' . $m['name']);
+        if (!\db_fetch($result)) {
+            throw new InvalidArgumentException('unknown ' . $m['name'] . ': ' . $id);
+        }
+    }
+
 }

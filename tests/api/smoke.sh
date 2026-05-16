@@ -157,6 +157,10 @@ JOURNAL_ID=$(json_get "$TMP_DIR/response.json" data.id)
 info "read journal entry"
 request GET "journal-entries/$JOURNAL_ID"
 
+info "void journal entry"
+request POST "journal-entries/$JOURNAL_ID/void" '{"date":"2026-05-15","memo":"API smoke void journal"}'
+[[ "$(json_get "$TMP_DIR/response.json" data.voided)" == "True" ]] || fail "journal entry was not voided"
+
 info "single-resource reads"
 request GET "items/$STOCK_ID"
 request GET "items/categories/$CATEGORY_ID"
@@ -263,6 +267,66 @@ SALES_INVOICE_ID=$(json_get "$TMP_DIR/response.json" data.id)
 request GET "sales/invoices/$SALES_INVOICE_ID"
 request GET sales/invoices
 
+info "void independent sales invoice and delivery"
+VOID_SO_REF="APIVSO$TS"
+VOID_SO_BODY=$(cat <<JSON
+{"customerId":$CUSTOMER_ID,"branchId":$DEFAULT_BRANCH_ID,"date":"2026-05-15","deliveryDate":"2026-05-15","reference":"$VOID_SO_REF","customerReference":"API smoke void SO $TS","location":"MEL","lines":[{"stockId":"$STOCK_ID","quantity":1,"price":5,"discount":0,"description":"API Smoke Item $TS"}]}
+JSON
+)
+request POST sales/orders "$VOID_SO_BODY"
+VOID_SO_ID=$(json_get "$TMP_DIR/response.json" data.id)
+VOID_DELIVERY_BODY=$(cat <<JSON
+{"orderId":$VOID_SO_ID,"date":"2026-05-15","deliveryDate":"2026-05-15","reference":"APIVDN$TS","location":"MEL","lines":[{"stockId":"$STOCK_ID","quantity":1}]}
+JSON
+)
+request POST sales/deliveries "$VOID_DELIVERY_BODY"
+VOID_DELIVERY_ID=$(json_get "$TMP_DIR/response.json" data.id)
+VOID_INVOICE_BODY=$(cat <<JSON
+{"deliveryId":$VOID_DELIVERY_ID,"date":"2026-05-15","dueDate":"2026-05-15","reference":"APIVINV$TS","lines":[{"stockId":"$STOCK_ID","quantity":1}]}
+JSON
+)
+request POST sales/invoices "$VOID_INVOICE_BODY"
+VOID_INVOICE_ID=$(json_get "$TMP_DIR/response.json" data.id)
+request POST "sales/invoices/$VOID_INVOICE_ID/void" '{"date":"2026-05-15","memo":"API smoke void invoice"}'
+[[ "$(json_get "$TMP_DIR/response.json" data.voided)" == "True" ]] || fail "sales invoice was not voided"
+request POST "sales/deliveries/$VOID_DELIVERY_ID/void" '{"date":"2026-05-15","memo":"API smoke void delivery"}'
+[[ "$(json_get "$TMP_DIR/response.json" data.voided)" == "True" ]] || fail "sales delivery was not voided"
+
+info "void independent purchase receipt"
+VOID_PO_BODY=$(cat <<JSON
+{"supplierId":$SUPPLIER_ID,"date":"2026-05-15","deliveryDate":"2026-05-15","reference":"APIVPO$TS","supplierReference":"API smoke void PO $TS","location":"MEL","lines":[{"stockId":"$STOCK_ID","quantity":1,"price":3,"description":"API Smoke Item $TS"}]}
+JSON
+)
+request POST purchase/orders "$VOID_PO_BODY"
+VOID_PO_ID=$(json_get "$TMP_DIR/response.json" data.id)
+VOID_GRN_BODY=$(cat <<JSON
+{"orderId":$VOID_PO_ID,"date":"2026-05-15","reference":"APIVGRN$TS","location":"MEL","lines":[{"stockId":"$STOCK_ID","quantity":1}]}
+JSON
+)
+request POST purchase/receipts "$VOID_GRN_BODY"
+VOID_GRN_ID=$(json_get "$TMP_DIR/response.json" data.id)
+request POST "purchase/receipts/$VOID_GRN_ID/void" '{"date":"2026-05-15","memo":"API smoke void receipt"}'
+[[ "$(json_get "$TMP_DIR/response.json" data.voided)" == "True" ]] || fail "purchase receipt was not voided"
+
+info "void independent supplier invoice"
+VOID_SI_PO_BODY=${VOID_PO_BODY/APIVPO/APIVSIPO}
+request POST purchase/orders "$VOID_SI_PO_BODY"
+VOID_SI_PO_ID=$(json_get "$TMP_DIR/response.json" data.id)
+VOID_SI_GRN_BODY=$(cat <<JSON
+{"orderId":$VOID_SI_PO_ID,"date":"2026-05-15","reference":"APIVSIGRN$TS","location":"MEL","lines":[{"stockId":"$STOCK_ID","quantity":1}]}
+JSON
+)
+request POST purchase/receipts "$VOID_SI_GRN_BODY"
+VOID_SI_GRN_ID=$(json_get "$TMP_DIR/response.json" data.id)
+VOID_SI_BODY=$(cat <<JSON
+{"receiptId":$VOID_SI_GRN_ID,"date":"2026-05-15","dueDate":"2026-05-15","reference":"APIVSI$TS","supplierReference":"API smoke void SI $TS","lines":[{"stockId":"$STOCK_ID","quantity":1,"price":3}]}
+JSON
+)
+request POST purchase/invoices "$VOID_SI_BODY"
+VOID_SUPPLIER_INVOICE_ID=$(json_get "$TMP_DIR/response.json" data.id)
+request POST "purchase/invoices/$VOID_SUPPLIER_INVOICE_ID/void" '{"date":"2026-05-15","memo":"API smoke void supplier invoice"}'
+[[ "$(json_get "$TMP_DIR/response.json" data.voided)" == "True" ]] || fail "supplier invoice was not voided"
+
 
 info "create customer payment"
 CUSTOMER_PAYMENT_REF="APICP$TS"
@@ -281,6 +345,13 @@ JSON
 request POST "customer-payments/$CUSTOMER_PAYMENT_ID/allocations" "$CUSTOMER_ALLOC_BODY"
 request GET "customer-payments/$CUSTOMER_PAYMENT_ID/allocations"
 
+info "void independent customer payment"
+VOID_CUSTOMER_PAYMENT_BODY=${CUSTOMER_PAYMENT_BODY/$CUSTOMER_PAYMENT_REF/APIVCP$TS}
+request POST customer-payments "$VOID_CUSTOMER_PAYMENT_BODY"
+VOID_CUSTOMER_PAYMENT_ID=$(json_get "$TMP_DIR/response.json" data.id)
+request POST "customer-payments/$VOID_CUSTOMER_PAYMENT_ID/void" '{"date":"2026-05-15","memo":"API smoke void customer payment"}'
+[[ "$(json_get "$TMP_DIR/response.json" data.voided)" == "True" ]] || fail "customer payment was not voided"
+
 info "create supplier payment"
 SUPPLIER_PAYMENT_REF="APISP$TS"
 SUPPLIER_PAYMENT_BODY=$(cat <<JSON
@@ -296,12 +367,22 @@ JSON
 request POST "supplier-payments/$SUPPLIER_PAYMENT_ID/allocations" "$SUPPLIER_ALLOC_BODY"
 request GET "supplier-payments/$SUPPLIER_PAYMENT_ID/allocations"
 
-info "create stock adjustment"
+info "void independent supplier payment"
+VOID_SUPPLIER_PAYMENT_BODY=${SUPPLIER_PAYMENT_BODY/$SUPPLIER_PAYMENT_REF/APIVSP$TS}
+request POST supplier-payments "$VOID_SUPPLIER_PAYMENT_BODY"
+VOID_SUPPLIER_PAYMENT_ID=$(json_get "$TMP_DIR/response.json" data.id)
+request POST "supplier-payments/$VOID_SUPPLIER_PAYMENT_ID/void" '{"date":"2026-05-15","memo":"API smoke void supplier payment"}'
+[[ "$(json_get "$TMP_DIR/response.json" data.voided)" == "True" ]] || fail "supplier payment was not voided"
+
+info "create and void stock adjustment"
 STOCK_REF="APIS$TS"
 STOCK_BODY=$(cat <<JSON
 {"location":"MEL","date":"2026-05-15","reference":"$STOCK_REF","memo":"API smoke stock $TS","lines":[{"stockId":"$STOCK_ID","quantity":1,"standardCost":0,"description":"API Smoke Item $TS"}]}
 JSON
 )
 request POST stock-adjustments "$STOCK_BODY"
+STOCK_ADJUSTMENT_ID=$(json_get "$TMP_DIR/response.json" data.id)
+request POST "stock-adjustments/$STOCK_ADJUSTMENT_ID/void" '{"date":"2026-05-15","memo":"API smoke void stock adjustment"}'
+[[ "$(json_get "$TMP_DIR/response.json" data.voided)" == "True" ]] || fail "stock adjustment was not voided"
 
 info "all smoke tests passed"

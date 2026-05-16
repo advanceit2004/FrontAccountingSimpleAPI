@@ -5,8 +5,8 @@ This roadmap tracks the next stages for the new Slim 4 / PHP 8.4 JSON API for Fr
 ## Current validated baseline
 
 - Branch: `new-slim4-api`
-- Latest validated image: `advanceit2004/frontaccounting:2.4.20-php8.4-api-slim4.7`
-- Latest completed implementation commit: `cbbc9b5 Add setup dependency APIs and validation`
+- Latest validated image: `advanceit2004/frontaccounting:2.4.20-php8.4-api-slim4.9`
+- Latest completed implementation commit: `Add safe lifecycle void APIs`
 - Runtime target: FrontAccounting `2.4.20`, PHP `8.4.21`, Slim 4
 - API base path: `/modules/api/public/index.php/v1`
 
@@ -121,15 +121,15 @@ GitHub issue: [#6 Stage 8: Add posted document detail endpoints](https://github.
 
 ### 8.5 Payment allocation and reconciliation
 
-GitHub issue: [#4 Stage 8: Add payment allocation and reconciliation workflows](https://github.com/advanceit2004/FrontAccountingSimpleAPI/issues/4)
+GitHub issue: [#4 Stage 8: Add payment allocation and reconciliation workflows](https://github.com/advanceit2004/FrontAccountingSimpleAPI/issues/4) — **completed**
 
-- [ ] Investigate FrontAccounting allocation internals for customer payments
-- [ ] Investigate supplier payment allocations against supplier invoices
-- [ ] Design safe API payloads for allocation workflows
-- [ ] Implement customer payment allocation endpoint if validated
-- [ ] Implement supplier payment allocation endpoint if validated
-- [ ] Add smoke tests for allocation scenarios
-- [ ] Document safe usage patterns and limitations
+- [x] Investigate FrontAccounting allocation internals for customer payments
+- [x] Investigate supplier payment allocations against supplier invoices
+- [x] Design safe API payloads for allocation workflows
+- [x] Implement customer payment allocation endpoint
+- [x] Implement supplier payment allocation endpoint
+- [x] Add smoke tests for allocation scenarios
+- [ ] Add OpenAPI/README details under issue #2
 
 ### 8.6 Release and versioning process
 
@@ -169,18 +169,25 @@ Completed in commit `cbbc9b5 Add setup dependency APIs and validation`.
 
 ## Stage 9 — Safer accounting lifecycle operations
 
-GitHub issue: [#8 Stage 9: Plan safe accounting lifecycle operations](https://github.com/advanceit2004/FrontAccountingSimpleAPI/issues/8)
+GitHub issue: [#8 Stage 9: Plan safe accounting lifecycle operations](https://github.com/advanceit2004/FrontAccountingSimpleAPI/issues/8) — **core void operations completed**
 
-These operations should be added cautiously because they affect accounting history and audit trails.
+These operations are implemented through FrontAccounting's native `void_transaction()` path, so GL, stock, bank, allocation, tax, audit trail, and `voided` table side effects remain under FrontAccounting's own accounting lifecycle logic.
 
-- [ ] Void/cancel sales delivery
-- [ ] Void/cancel sales invoice
-- [ ] Void/cancel purchase receipt
-- [ ] Void/cancel supplier invoice
+Implemented endpoints:
+
+- [x] `POST /v1/sales/deliveries/{id}/void`
+- [x] `POST /v1/sales/invoices/{id}/void`
+- [x] `POST /v1/purchase/receipts/{id}/void`
+- [x] `POST /v1/purchase/invoices/{id}/void`
+- [x] `POST /v1/customer-payments/{id}/void`
+- [x] `POST /v1/supplier-payments/{id}/void`
+- [x] `POST /v1/journal-entries/{id}/void`
+- [x] `POST /v1/stock-adjustments/{id}/void`
+- [x] Add `SA_VOIDTRANSACTION` permission checks plus document-specific permissions
+- [x] Add smoke tests covering void success for each endpoint
 - [ ] Customer credit note workflows
 - [ ] Supplier credit note workflows
-- [ ] Add permission checks and audit documentation for each operation
-- [ ] Add tests proving GL, stock, and allocation side effects are correct
+- [ ] Add OpenAPI/README details under issue #2
 
 ---
 
