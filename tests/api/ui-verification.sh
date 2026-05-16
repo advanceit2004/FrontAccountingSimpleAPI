@@ -51,7 +51,7 @@ ITEM_NAME="API UI Verify Item $RUN_ID"
 
 info "create customer"
 CUSTOMER_BODY=$(cat <<JSON
-{"name":"$CUSTOMER_NAME","reference":"$CUSTOMER_REF","currency":"USD","address":"123 API Verification Street","creditStatus":1,"paymentTerms":4,"salesType":1,"creditLimit":5000,"notes":"Created by API UI verification test $RUN_ID"}
+{"name":"$CUSTOMER_NAME","reference":"$CUSTOMER_REF","currency":"AUD","address":"123 API Verification Street","creditStatus":1,"paymentTerms":4,"salesType":1,"creditLimit":5000,"notes":"Created by API UI verification test $RUN_ID"}
 JSON
 )
 request POST customers "$CUSTOMER_BODY"
@@ -59,7 +59,7 @@ CUSTOMER_ID=$(json_get "$TMP_DIR/response.json" data.id)
 
 info "create supplier"
 SUPPLIER_BODY=$(cat <<JSON
-{"name":"$SUPPLIER_NAME","reference":"$SUPPLIER_REF","currency":"USD","payableAccount":"2100","purchaseAccount":"5010","paymentDiscountAccount":"5060","taxGroupId":1,"notes":"Created by API UI verification test $RUN_ID"}
+{"name":"$SUPPLIER_NAME","reference":"$SUPPLIER_REF","currency":"AUD","payableAccount":"20000","purchaseAccount":"6550","paymentDiscountAccount":"7040","taxGroupId":1,"notes":"Created by API UI verification test $RUN_ID"}
 JSON
 )
 request POST suppliers "$SUPPLIER_BODY"
@@ -67,7 +67,7 @@ SUPPLIER_ID=$(json_get "$TMP_DIR/response.json" data.id)
 
 info "create stock item"
 ITEM_BODY=$(cat <<JSON
-{"stockId":"$STOCK_ID","description":"$ITEM_NAME","categoryId":1,"taxTypeId":1,"units":"each","mbFlag":"B","salesAccount":"4050","inventoryAccount":"1200","cogsAccount":"6920","adjustmentAccount":"1205","wipAccount":"6910"}
+{"stockId":"$STOCK_ID","description":"$ITEM_NAME","categoryId":1,"taxTypeId":1,"units":"","mbFlag":"B","salesAccount":"4050","inventoryAccount":"1200","cogsAccount":"6920","adjustmentAccount":"1205","wipAccount":"6910"}
 JSON
 )
 request POST items "$ITEM_BODY"

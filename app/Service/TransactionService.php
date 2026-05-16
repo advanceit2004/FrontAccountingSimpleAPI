@@ -516,9 +516,19 @@ final class TransactionService
         require_once Kernel::faRoot() . '/sales/includes/db/payment_db.inc';
         require_once Kernel::faRoot() . '/sales/includes/db/branches_db.inc';
         require_once Kernel::faRoot() . '/gl/includes/db/gl_db_bank_accounts.inc';
+        $branchId = $d['branchId'];
+        if (!$branchId) {
+            $defaultBranch = \get_default_branch($d['customerId']);
+            if (!$defaultBranch) {
+                throw new InvalidArgumentException('customer has no branch: ' . $d['customerId']);
+            }
+            $branchId = (int) $defaultBranch['branch_code'];
+        } elseif (!\get_cust_branch($d['customerId'], $branchId)) {
+            throw new InvalidArgumentException('branchId does not belong to customer: ' . $branchId);
+        }
         $date = \sql2date($d['date']);
-        $id = \write_customer_payment(0, $d['customerId'], $d['branchId'], $d['bankAccount'], $date, $d['reference'], $d['amount'], $d['discount'], $d['memo'], 0, $d['charge'], $d['bankAmount'], $d['dimension1'], $d['dimension2']);
-        return ['id' => $id, 'reference' => $d['reference']];
+        $id = \write_customer_payment(0, $d['customerId'], $branchId, $d['bankAccount'], $date, $d['reference'], $d['amount'], $d['discount'], $d['memo'], 0, $d['charge'], $d['bankAmount'], $d['dimension1'], $d['dimension2']);
+        return ['id' => $id, 'reference' => $d['reference'], 'branchId' => $branchId];
     }
 
     /** @param array<string,mixed> $d */

@@ -26,6 +26,11 @@ return function (App $app): void {
         $group->get('/customers', [CatalogController::class, 'customers'])->add(new BearerTokenMiddleware(['SA_CUSTOMER', 'SA_SALESTRANSVIEW', 'SA_SALESANALYTIC']));
         $group->get('/customers/{id}', [CatalogController::class, 'customer'])->add(new BearerTokenMiddleware(['SA_CUSTOMER', 'SA_SALESTRANSVIEW', 'SA_SALESANALYTIC']));
         $group->patch('/customers/{id}/inactive', [CatalogController::class, 'setCustomerInactive'])->add(new BearerTokenMiddleware(['SA_CUSTOMER']));
+        $group->get('/customers/{id}/branches', [CatalogController::class, 'customerBranches'])->add(new BearerTokenMiddleware(['SA_CUSTOMER', 'SA_SALESTRANSVIEW', 'SA_SALESORDER']));
+        $group->get('/customers/{id}/branches/{branchId}', [CatalogController::class, 'customerBranch'])->add(new BearerTokenMiddleware(['SA_CUSTOMER', 'SA_SALESTRANSVIEW', 'SA_SALESORDER']));
+        $group->post('/customers/{id}/branches', [MutationController::class, 'createCustomerBranch'])->add(new BearerTokenMiddleware(['SA_CUSTOMER']));
+        $group->put('/customers/{id}/branches/{branchId}', [MutationController::class, 'updateCustomerBranch'])->add(new BearerTokenMiddleware(['SA_CUSTOMER']));
+        $group->patch('/customers/{id}/branches/{branchId}/inactive', [CatalogController::class, 'setCustomerBranchInactive'])->add(new BearerTokenMiddleware(['SA_CUSTOMER']));
         $group->get('/suppliers', [CatalogController::class, 'suppliers'])->add(new BearerTokenMiddleware(['SA_SUPPLIER', 'SA_SUPPTRANSVIEW', 'SA_SUPPLIERANALYTIC']));
         $group->get('/suppliers/{id}', [CatalogController::class, 'supplier'])->add(new BearerTokenMiddleware(['SA_SUPPLIER', 'SA_SUPPTRANSVIEW', 'SA_SUPPLIERANALYTIC']));
         $group->patch('/suppliers/{id}/inactive', [CatalogController::class, 'setSupplierInactive'])->add(new BearerTokenMiddleware(['SA_SUPPLIER']));
@@ -38,6 +43,14 @@ return function (App $app): void {
         $group->get('/tax/types', [CatalogController::class, 'taxTypes'])->add(new BearerTokenMiddleware(['SA_TAXRATES', 'SA_TAXREP', 'SA_OPEN']));
         $group->get('/tax/groups', [CatalogController::class, 'taxGroups'])->add(new BearerTokenMiddleware(['SA_TAXGROUPS', 'SA_TAXREP', 'SA_OPEN']));
         $group->get('/locations', [CatalogController::class, 'locations'])->add(new BearerTokenMiddleware(['SA_INVENTORYLOCATION', 'SA_ITEMSSTATVIEW', 'SA_ITEMSTRANSVIEW']));
+        $group->get('/sales/areas', [CatalogController::class, 'salesAreas'])->add(new BearerTokenMiddleware(['SA_CUSTOMER', 'SA_SALESORDER', 'SA_OPEN']));
+        $group->get('/sales/salesmen', [CatalogController::class, 'salesmen'])->add(new BearerTokenMiddleware(['SA_CUSTOMER', 'SA_SALESORDER', 'SA_OPEN']));
+        $group->get('/shippers', [CatalogController::class, 'shippers'])->add(new BearerTokenMiddleware(['SA_SALESORDER', 'SA_SALESDELIVERY', 'SA_OPEN']));
+        $group->get('/payment-terms', [CatalogController::class, 'paymentTerms'])->add(new BearerTokenMiddleware(['SA_CUSTOMER', 'SA_SUPPLIER', 'SA_OPEN']));
+        $group->get('/item-units', [CatalogController::class, 'itemUnits'])->add(new BearerTokenMiddleware(['SA_ITEM', 'SA_ITEMSSTATVIEW', 'SA_OPEN']));
+        $group->get('/item-tax-types', [CatalogController::class, 'itemTaxTypes'])->add(new BearerTokenMiddleware(['SA_ITEM', 'SA_TAXRATES', 'SA_OPEN']));
+        $group->get('/dimensions', [CatalogController::class, 'dimensions'])->add(new BearerTokenMiddleware(['SA_DIMENSION', 'SA_OPEN']));
+        $group->get('/fiscal-years', [CatalogController::class, 'fiscalYears'])->add(new BearerTokenMiddleware(['SA_FISCALYEARS', 'SA_OPEN']));
 
         $group->get('/sales/orders', [CatalogController::class, 'salesOrders'])->add(new BearerTokenMiddleware(['SA_SALESTRANSVIEW', 'SA_SALESORDER', 'SA_OPEN']));
         $group->post('/sales/orders', [TransactionController::class, 'createSalesOrder'])->add(new BearerTokenMiddleware(['SA_SALESORDER']));

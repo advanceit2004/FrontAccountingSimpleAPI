@@ -108,6 +108,63 @@ final class CatalogController
         return $this->single($response, $this->service->glAccount((string) $args['code']), 'GL account was not found');
     }
 
+
+    public function customerBranches(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->list($request, $response, $this->service->customerBranches((int) $args['id'], $this->bool($request->getQueryParams(), 'includeInactive')));
+    }
+
+    public function customerBranch(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->single($response, $this->service->customerBranch((int) $args['id'], (int) $args['branchId']), 'Customer branch was not found');
+    }
+
+    public function salesAreas(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        return $this->list($request, $response, $this->service->salesAreas($this->bool($request->getQueryParams(), 'includeInactive')));
+    }
+
+    public function salesmen(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        return $this->list($request, $response, $this->service->salesmen($this->bool($request->getQueryParams(), 'includeInactive')));
+    }
+
+    public function shippers(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        return $this->list($request, $response, $this->service->shippers($this->bool($request->getQueryParams(), 'includeInactive')));
+    }
+
+    public function paymentTerms(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        return $this->list($request, $response, $this->service->paymentTerms($this->bool($request->getQueryParams(), 'includeInactive')));
+    }
+
+    public function itemUnits(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        return $this->list($request, $response, $this->service->itemUnits($this->bool($request->getQueryParams(), 'includeInactive')));
+    }
+
+    public function itemTaxTypes(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        return $this->list($request, $response, $this->service->itemTaxTypes($this->bool($request->getQueryParams(), 'includeInactive')));
+    }
+
+    public function dimensions(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        return $this->list($request, $response, $this->service->dimensions());
+    }
+
+    public function fiscalYears(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        return $this->list($request, $response, $this->service->fiscalYears());
+    }
+
+
+    public function setCustomerBranchInactive(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->inactive($request, $response, 'branch', (string) $args['branchId']);
+    }
+
     public function setItemInactive(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
         return $this->inactive($request, $response, 'item', (string) $args['stockId']);

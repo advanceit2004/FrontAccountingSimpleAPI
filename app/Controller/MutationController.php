@@ -74,6 +74,25 @@ final class MutationController
         }
     }
 
+
+    public function createCustomerBranch(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        try {
+            return JsonResponse::success($response, $this->service->createCustomerBranch((int) $args['id'], $this->customerBranchData($request)), [], 201);
+        } catch (InvalidArgumentException $e) {
+            return JsonResponse::error($response, 'VALIDATION_ERROR', $e->getMessage(), 422);
+        }
+    }
+
+    public function updateCustomerBranch(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        try {
+            return JsonResponse::success($response, $this->service->updateCustomerBranch((int) $args['id'], (int) $args['branchId'], $this->customerBranchData($request)));
+        } catch (InvalidArgumentException $e) {
+            return JsonResponse::error($response, 'VALIDATION_ERROR', $e->getMessage(), 422);
+        }
+    }
+
     public function createSupplier(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         try {
@@ -104,7 +123,7 @@ final class MutationController
             'inventoryAccount' => RequestData::string($b, 'inventoryAccount'),
             'adjustmentAccount' => RequestData::string($b, 'adjustmentAccount'),
             'wipAccount' => RequestData::string($b, 'wipAccount'),
-            'units' => RequestData::string($b, 'units', 'each'),
+            'units' => RequestData::string($b, 'units', ''),
             'mbFlag' => RequestData::string($b, 'mbFlag', 'B'),
             'dimension1' => RequestData::int($b, 'dimension1', 0),
             'dimension2' => RequestData::int($b, 'dimension2', 0),
@@ -124,7 +143,7 @@ final class MutationController
             'longDescription' => RequestData::string($b, 'longDescription', RequestData::string($b, 'description')),
             'categoryId' => RequestData::int($b, 'categoryId'),
             'taxTypeId' => RequestData::int($b, 'taxTypeId'),
-            'units' => RequestData::string($b, 'units', 'each'),
+            'units' => RequestData::string($b, 'units', ''),
             'mbFlag' => RequestData::string($b, 'mbFlag', 'B'),
             'salesAccount' => RequestData::string($b, 'salesAccount'),
             'inventoryAccount' => RequestData::string($b, 'inventoryAccount'),
@@ -167,11 +186,36 @@ final class MutationController
             'area' => RequestData::int($b, 'area', 1),
             'taxGroupId' => RequestData::int($b, 'taxGroupId', 1),
             'branchSalesAccount' => RequestData::string($b, 'branchSalesAccount', '4050'),
-            'branchSalesDiscountAccount' => RequestData::string($b, 'branchSalesDiscountAccount', '4060'),
+            'branchSalesDiscountAccount' => RequestData::string($b, 'branchSalesDiscountAccount', '6090'),
             'branchReceivablesAccount' => RequestData::string($b, 'branchReceivablesAccount', '1800'),
-            'branchPaymentDiscountAccount' => RequestData::string($b, 'branchPaymentDiscountAccount', '5060'),
+            'branchPaymentDiscountAccount' => RequestData::string($b, 'branchPaymentDiscountAccount', '6095'),
             'defaultLocation' => RequestData::string($b, 'defaultLocation', 'MEL'),
             'defaultShipVia' => RequestData::int($b, 'defaultShipVia', 1),
+        ];
+    }
+
+
+    /** @return array<string,mixed> */
+    private function customerBranchData(ServerRequestInterface $request): array
+    {
+        $b = RequestData::body($request);
+        return [
+            'branchName' => RequestData::string($b, 'branchName', RequestData::string($b, 'name', '')),
+            'branchReference' => RequestData::string($b, 'branchReference', RequestData::string($b, 'reference', '')),
+            'branchAddress' => RequestData::string($b, 'branchAddress', RequestData::string($b, 'address', '')),
+            'postAddress' => RequestData::string($b, 'postAddress', RequestData::string($b, 'branchPostAddress', RequestData::string($b, 'address', ''))),
+            'salesman' => RequestData::int($b, 'salesman', 1),
+            'area' => RequestData::int($b, 'area', 1),
+            'taxGroupId' => RequestData::int($b, 'taxGroupId', 1),
+            'salesAccount' => RequestData::string($b, 'salesAccount', '4050'),
+            'salesDiscountAccount' => RequestData::string($b, 'salesDiscountAccount', '6090'),
+            'receivablesAccount' => RequestData::string($b, 'receivablesAccount', '1800'),
+            'paymentDiscountAccount' => RequestData::string($b, 'paymentDiscountAccount', '6095'),
+            'defaultLocation' => RequestData::string($b, 'defaultLocation', 'MEL'),
+            'groupNo' => RequestData::int($b, 'groupNo', 0),
+            'defaultShipVia' => RequestData::int($b, 'defaultShipVia', 1),
+            'notes' => RequestData::string($b, 'notes', ''),
+            'bankAccount' => RequestData::string($b, 'bankAccount', ''),
         ];
     }
 

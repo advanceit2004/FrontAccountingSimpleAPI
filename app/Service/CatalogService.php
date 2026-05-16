@@ -171,6 +171,7 @@ final class CatalogService
             'customer' => ['table' => 'debtors_master', 'key' => 'debtor_no'],
             'supplier' => ['table' => 'suppliers', 'key' => 'supplier_id'],
             'category' => ['table' => 'stock_category', 'key' => 'category_id'],
+            'branch' => ['table' => 'cust_branch', 'key' => 'branch_code'],
         ];
         if (!isset($map[$resource])) {
             throw new \InvalidArgumentException('unsupported inactive resource: ' . $resource);
@@ -301,6 +302,112 @@ final class CatalogService
             'could not get debtor transaction lines'
         );
         return $header;
+    }
+
+
+    /** @return list<array<string,mixed>> */
+    public function customerBranches(int $customerId, bool $includeInactive = false): array
+    {
+        Kernel::boot();
+        $sql = 'SELECT b.*, t.name AS tax_group_name, loc.location_name, s.salesman_name, a.description AS area_name '
+            . 'FROM ' . TB_PREF . 'cust_branch b '
+            . 'LEFT JOIN ' . TB_PREF . 'tax_groups t ON t.id=b.tax_group_id '
+            . 'LEFT JOIN ' . TB_PREF . 'locations loc ON loc.loc_code=b.default_location '
+            . 'LEFT JOIN ' . TB_PREF . 'salesman s ON s.salesman_code=b.salesman '
+            . 'LEFT JOIN ' . TB_PREF . 'areas a ON a.area_code=b.area '
+            . 'WHERE b.debtor_no=' . \db_escape($customerId);
+        if (!$includeInactive) {
+            $sql .= ' AND !b.inactive';
+        }
+        $sql .= ' ORDER BY b.branch_ref, b.branch_code';
+        return $this->queryRows($sql, 'could not get customer branches');
+    }
+
+    /** @return array<string,mixed> */
+    public function customerBranch(int $customerId, int $branchId): array
+    {
+        Kernel::boot();
+        return Db::row(\db_query(
+            'SELECT b.*, t.name AS tax_group_name, loc.location_name, s.salesman_name, a.description AS area_name '
+            . 'FROM ' . TB_PREF . 'cust_branch b '
+            . 'LEFT JOIN ' . TB_PREF . 'tax_groups t ON t.id=b.tax_group_id '
+            . 'LEFT JOIN ' . TB_PREF . 'locations loc ON loc.loc_code=b.default_location '
+            . 'LEFT JOIN ' . TB_PREF . 'salesman s ON s.salesman_code=b.salesman '
+            . 'LEFT JOIN ' . TB_PREF . 'areas a ON a.area_code=b.area '
+            . 'WHERE b.debtor_no=' . \db_escape($customerId) . ' AND b.branch_code=' . \db_escape($branchId),
+            'could not get customer branch'
+        ));
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function salesAreas(bool $includeInactive = false): array
+    {
+        Kernel::boot();
+        $sql = 'SELECT * FROM ' . TB_PREF . 'areas';
+        if (!$includeInactive) {
+            $sql .= ' WHERE !inactive';
+        }
+        $sql .= ' ORDER BY description';
+        return $this->queryRows($sql, 'could not get sales areas');
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function salesmen(bool $includeInactive = false): array
+    {
+        Kernel::boot();
+        $sql = 'SELECT * FROM ' . TB_PREF . 'salesman';
+        if (!$includeInactive) {
+            $sql .= ' WHERE !inactive';
+        }
+        $sql .= ' ORDER BY salesman_name';
+        return $this->queryRows($sql, 'could not get salesmen');
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function shippers(bool $includeInactive = false): array
+    {
+        Kernel::boot();
+        require_once Kernel::faRoot() . '/admin/db/shipping_db.inc';
+        return Db::rows(\get_shippers($includeInactive));
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function paymentTerms(bool $includeInactive = false): array
+    {
+        Kernel::boot();
+        require_once Kernel::faRoot() . '/admin/db/company_db.inc';
+        return Db::rows(\get_payment_terms_all($includeInactive));
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function itemUnits(bool $includeInactive = false): array
+    {
+        Kernel::boot();
+        require_once Kernel::faRoot() . '/inventory/includes/db/items_units_db.inc';
+        return Db::rows(\get_all_item_units($includeInactive));
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function itemTaxTypes(bool $includeInactive = false): array
+    {
+        Kernel::boot();
+        require_once Kernel::faRoot() . '/taxes/db/item_tax_types_db.inc';
+        return Db::rows(\get_all_item_tax_types($includeInactive));
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function dimensions(): array
+    {
+        Kernel::boot();
+        require_once Kernel::faRoot() . '/dimensions/includes/dimensions_db.inc';
+        return Db::rows(\get_dimensions());
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function fiscalYears(): array
+    {
+        Kernel::boot();
+        return $this->queryRows('SELECT * FROM ' . TB_PREF . 'fiscal_year ORDER BY begin DESC', 'could not get fiscal years');
     }
 
     /** @return list<array<string,mixed>> */

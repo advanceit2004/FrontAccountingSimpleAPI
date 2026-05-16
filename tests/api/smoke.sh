@@ -56,7 +56,7 @@ TOKEN=$(json_get "$TMP_DIR/login.json" data.accessToken)
 [[ -n "$TOKEN" ]] || fail "empty token"
 
 info "read endpoints"
-for ep in companies items/categories items customers suppliers currencies exchange-rates bank-accounts gl/accounts tax/types tax/groups locations sales/orders sales/invoices purchase/orders customer-payments supplier-payments; do
+for ep in companies items/categories items customers suppliers currencies exchange-rates bank-accounts gl/accounts tax/types tax/groups locations sales/areas sales/salesmen shippers payment-terms item-units item-tax-types dimensions fiscal-years sales/orders sales/invoices purchase/orders customer-payments supplier-payments; do
   request GET "$ep"
   python3 - <<PY || fail "$ep did not return success JSON"
 import json
@@ -70,7 +70,7 @@ TS=${SMOKE_TS:-$(date +%H%M%S)}
 
 info "create item category"
 CATEGORY_BODY=$(cat <<JSON
-{"description":"API Smoke Category $TS","taxTypeId":1,"salesAccount":"4050","cogsAccount":"6920","inventoryAccount":"1200","adjustmentAccount":"1205","wipAccount":"6910","units":"each","mbFlag":"B"}
+{"description":"API Smoke Category $TS","taxTypeId":1,"salesAccount":"4050","cogsAccount":"6920","inventoryAccount":"1200","adjustmentAccount":"1205","wipAccount":"6910","units":"","mbFlag":"B"}
 JSON
 )
 request POST items/categories "$CATEGORY_BODY"
@@ -84,7 +84,7 @@ request PUT "items/categories/$CATEGORY_ID" "$UPDATED_CATEGORY_BODY"
 info "create item"
 STOCK_ID="APISMOKE$TS"
 ITEM_BODY=$(cat <<JSON
-{"stockId":"$STOCK_ID","description":"API Smoke Item $TS","categoryId":1,"taxTypeId":1,"units":"each","mbFlag":"B","salesAccount":"4050","inventoryAccount":"1200","cogsAccount":"6920","adjustmentAccount":"1205","wipAccount":"6910"}
+{"stockId":"$STOCK_ID","description":"API Smoke Item $TS","categoryId":1,"taxTypeId":1,"units":"","mbFlag":"B","salesAccount":"4050","inventoryAccount":"1200","cogsAccount":"6920","adjustmentAccount":"1205","wipAccount":"6910"}
 JSON
 )
 request POST items "$ITEM_BODY"
@@ -96,7 +96,7 @@ request PUT "items/$STOCK_ID" "$UPDATED_ITEM_BODY"
 
 info "create customer"
 CUSTOMER_BODY=$(cat <<JSON
-{"name":"API Smoke Customer $TS","reference":"APISMOKEC$TS","currency":"USD","address":"Smoke Test Address","creditStatus":1,"paymentTerms":4,"salesType":1,"creditLimit":1000}
+{"name":"API Smoke Customer $TS","reference":"APISMOKEC$TS","currency":"AUD","address":"Smoke Test Address","creditStatus":1,"paymentTerms":4,"salesType":1,"creditLimit":1000}
 JSON
 )
 request POST customers "$CUSTOMER_BODY"
@@ -107,9 +107,33 @@ info "update customer"
 UPDATED_CUSTOMER_BODY=${CUSTOMER_BODY/API Smoke Customer/API Smoke Customer Updated}
 request PUT "customers/$CUSTOMER_ID" "$UPDATED_CUSTOMER_BODY"
 
+info "customer branch APIs"
+request GET "customers/$CUSTOMER_ID/branches"
+DEFAULT_BRANCH_ID=$(python3 - <<PYBRANCH
+import json
+p=json.load(open("$TMP_DIR/response.json"))
+assert p["success"] is True
+assert len(p["data"]) >= 1
+print(p["data"][0]["branch_code"])
+PYBRANCH
+)
+request GET "customers/$CUSTOMER_ID/branches/$DEFAULT_BRANCH_ID"
+BRANCH_BODY=$(cat <<JSON
+{"branchName":"API Smoke Branch $TS","branchReference":"APISMOKEB$TS","branchAddress":"Smoke Branch Address","postAddress":"Smoke Branch Postal","salesman":1,"area":1,"taxGroupId":1,"salesAccount":"4050","salesDiscountAccount":"6090","receivablesAccount":"1800","paymentDiscountAccount":"6095","defaultLocation":"MEL","defaultShipVia":1,"notes":"API smoke branch $TS"}
+JSON
+)
+request POST "customers/$CUSTOMER_ID/branches" "$BRANCH_BODY"
+BRANCH_ID=$(json_get "$TMP_DIR/response.json" data.id)
+[[ "$BRANCH_ID" =~ ^[0-9]+$ ]] || fail "invalid branch id: $BRANCH_ID"
+request GET "customers/$CUSTOMER_ID/branches/$BRANCH_ID"
+UPDATED_BRANCH_BODY=${BRANCH_BODY/API Smoke Branch/API Smoke Branch Updated}
+request PUT "customers/$CUSTOMER_ID/branches/$BRANCH_ID" "$UPDATED_BRANCH_BODY"
+request PATCH "customers/$CUSTOMER_ID/branches/$BRANCH_ID/inactive" '{"inactive":true}'
+request PATCH "customers/$CUSTOMER_ID/branches/$BRANCH_ID/inactive" '{"inactive":false}'
+
 info "create supplier"
 SUPPLIER_BODY=$(cat <<JSON
-{"name":"API Smoke Supplier $TS","reference":"APISMOKES$TS","currency":"USD","payableAccount":"2100","purchaseAccount":"5010","paymentDiscountAccount":"5060","taxGroupId":1}
+{"name":"API Smoke Supplier $TS","reference":"APISMOKES$TS","currency":"AUD","payableAccount":"20000","purchaseAccount":"6550","paymentDiscountAccount":"7040","taxGroupId":1}
 JSON
 )
 request POST suppliers "$SUPPLIER_BODY"
@@ -174,7 +198,7 @@ BAD_CODE=$(curl -sS -o "$TMP_DIR/bad_journal.json" -w '%{http_code}' -X POST \
 info "create sales order"
 SALES_ORDER_REF="APISO$TS"
 SALES_ORDER_BODY=$(cat <<JSON
-{"customerId":$CUSTOMER_ID,"date":"2026-05-15","deliveryDate":"2026-05-15","reference":"$SALES_ORDER_REF","customerReference":"API smoke SO $TS","location":"MEL","lines":[{"stockId":"$STOCK_ID","quantity":1,"price":5,"discount":0,"description":"API Smoke Item $TS"}]}
+{"customerId":$CUSTOMER_ID,"branchId":$DEFAULT_BRANCH_ID,"date":"2026-05-15","deliveryDate":"2026-05-15","reference":"$SALES_ORDER_REF","customerReference":"API smoke SO $TS","location":"MEL","lines":[{"stockId":"$STOCK_ID","quantity":1,"price":5,"discount":0,"description":"API Smoke Item $TS"}]}
 JSON
 )
 request POST sales/orders "$SALES_ORDER_BODY"
@@ -247,6 +271,8 @@ CUSTOMER_PAYMENT_BODY=$(cat <<JSON
 JSON
 )
 request POST customer-payments "$CUSTOMER_PAYMENT_BODY"
+PAYMENT_BRANCH_ID=$(json_get "$TMP_DIR/response.json" data.branchId)
+[[ "$PAYMENT_BRANCH_ID" =~ ^[0-9]+$ && "$PAYMENT_BRANCH_ID" != "0" ]] || fail "customer payment did not resolve branch id"
 
 info "create supplier payment"
 SUPPLIER_PAYMENT_REF="APISP$TS"
